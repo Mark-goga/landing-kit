@@ -1,0 +1,46 @@
+---
+import type { LandingContent } from "@site/data/locales";
+import { siteConfig } from "../config/site";
+
+interface Props {
+  content: LandingContent;
+}
+
+const { content } = Astro.props;
+---
+
+<div class="lead-modal" id="lead-modal" data-lead-modal hidden>
+  <div class="lead-modal__overlay" data-modal-close></div>
+  <div class="lead-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="lead-modal-title">
+    <button type="button" class="lead-modal__close" data-modal-close aria-label={content.modal.closeAria}>
+      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+    </button>
+    <h2 class="lead-modal__title" id="lead-modal-title">{content.modal.title}</h2>
+    <p class="lead-modal__desc">{content.modal.description}</p>
+    <form class="lead-modal__form" data-lead-form data-from="price-card-free" novalidate>
+      <input
+        type="email"
+        name="email"
+        class="lead-modal__input"
+        placeholder={content.modal.placeholder}
+        required
+        autocomplete="email"
+      />
+      {
+        siteConfig.turnstileSiteKey && (
+          <div
+            class="cf-turnstile"
+            data-sitekey={siteConfig.turnstileSiteKey}
+            data-appearance="interaction-only"
+            data-size="flexible"
+          />
+        )
+      }
+      <button type="submit" class="lead-modal__submit" data-lead-submit>{content.modal.submit}</button>
+    </form>
+  </div>
+</div>
+
+<div class="lead-toast" id="lead-toast" data-lead-toast role="status" aria-live="polite" hidden></div>

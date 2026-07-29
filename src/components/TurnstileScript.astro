@@ -1,0 +1,16 @@
+---
+import { siteConfig } from "../config/site";
+
+---
+
+{
+  siteConfig.turnstileSiteKey && (
+    <script
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+      data-categories="essential"
+      async
+      defer
+      is:inline
+    />
+  )
+}

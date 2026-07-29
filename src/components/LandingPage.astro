@@ -1,0 +1,206 @@
+---
+import Header from "./Header.astro";
+import Hero from "./Hero.astro";
+import Why from "./Why.astro";
+import Features from "./Features.astro";
+import Pricing from "./Pricing.astro";
+import Faq from "./Faq.astro";
+import Cta from "./Cta.astro";
+import Footer from "./Footer.astro";
+import Modal from "./Modal.astro";
+import LandingLayout from "../layouts/LandingLayout.astro";
+import { siteConfig, type LocaleKey } from "../config/site";
+import { landingContent, landingLanguageNav } from "@site/data/locales";
+
+interface Props {
+  locale: LocaleKey;
+  canonicalPath?: string;
+  routePath?: string;
+}
+
+const { locale, canonicalPath, routePath } = Astro.props;
+const content = landingContent[locale];
+const pageCanonicalPath = canonicalPath ?? content.path;
+const pageRoutePath = routePath ?? content.path;
+---
+
+<LandingLayout content={content} canonicalPath={pageCanonicalPath} routePath={pageRoutePath}>
+  <Header content={content} routePath={pageRoutePath} languageNav={landingLanguageNav()} />
+  <main>
+    <Hero content={content} routePath={pageRoutePath} />
+    <Why content={content} routePath={pageRoutePath} />
+    <Features content={content} routePath={pageRoutePath} />
+    <Pricing content={content} />
+    <Faq content={content} />
+    <Cta content={content} />
+  </main>
+  <Footer content={content} routePath={pageRoutePath} />
+  <Modal content={content} />
+</LandingLayout>
+
+<script
+  define:vars={{
+    leadsUrl: `${siteConfig.leadsApiUrl}/leads`,
+    applicationId: siteConfig.applicationId,
+    toast: content.toast,
+    turnstileEnabled: Boolean(siteConfig.turnstileSiteKey),
+  }}
+>
+  (() => {
+    const modal = document.querySelector("[data-lead-modal]");
+    const toastEl = document.querySelector("[data-lead-toast]");
+    let toastTimer;
+    let lastFocused = null;
+    let currentFrom = "unknown";
+
+    const track = (name, params) => {
+      if (typeof window.fluxoTrack === "function") window.fluxoTrack(name, params || {});
+    };
+
+    const showToast = (message, isError) => {
+      if (!toastEl) return;
+      toastEl.textContent = message;
+      toastEl.classList.toggle("lead-toast--error", Boolean(isError));
+      toastEl.hidden = false;
+      // force reflow so the transition runs on re-trigger
+      void toastEl.offsetWidth;
+      toastEl.classList.add("lead-toast--visible");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toastEl.classList.remove("lead-toast--visible");
+        setTimeout(() => {
+          toastEl.hidden = true;
+        }, 300);
+      }, 4000);
+    };
+
+    const openModal = (from) => {
+      if (!modal) return;
+      currentFrom = from || "unknown";
+      const form = modal.querySelector("[data-lead-form]");
+      if (form && from) form.setAttribute("data-from", from);
+      lastFocused = document.activeElement;
+      modal.hidden = false;
+      void modal.offsetWidth;
+      modal.classList.add("lead-modal--open");
+      document.body.style.overflow = "hidden";
+      const input = modal.querySelector("input");
+      if (input) setTimeout(() => input.focus(), 50);
+      track("modal_open", { from: currentFrom });
+    };
+
+    const closeModal = () => {
+      if (!modal) return;
+      modal.classList.remove("lead-modal--open");
+      document.body.style.overflow = "";
+      setTimeout(() => {
+        modal.hidden = true;
+      }, 250);
+      if (lastFocused && typeof lastFocused.focus === "function") lastFocused.focus();
+    };
+
+    const userCloseModal = () => {
+      if (modal && !modal.hidden) track("modal_close", { from: currentFrom });
+      closeModal();
+    };
+
+    document.querySelectorAll("[data-modal-open]").forEach((trigger) => {
+      trigger.addEventListener("click", () => openModal(trigger.getAttribute("data-from")));
+    });
+
+    if (modal) {
+      modal.querySelectorAll("[data-modal-close]").forEach((el) => {
+        el.addEventListener("click", userCloseModal);
+      });
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal && !modal.hidden) userCloseModal();
+    });
+
+    const buildUtmMetadata = () => {
+      const params = new URLSearchParams(window.location.search);
+      return Object.fromEntries(Array.from(params.entries()).filter(([key]) => key.startsWith("utm_")));
+    };
+
+    const buildLeadMetadata = (from) => ({
+      from,
+      page: window.location.href,
+      path: window.location.pathname,
+      locale: document.documentElement.lang || "unknown",
+      referrer: document.referrer,
+      userAgent: navigator.userAgent,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      utm: buildUtmMetadata(),
+    });
+
+    // submit so tokens (single-use) are never reused.
+    const getTurnstileToken = (form) => {
+      const field = form.querySelector('[name="cf-turnstile-response"]');
+      return field ? field.value : "";
+    };
+
+    const resetTurnstile = (form) => {
+      if (!turnstileEnabled || typeof window.turnstile === "undefined") return;
+      const widget = form.querySelector(".cf-turnstile");
+      if (widget) window.turnstile.reset(widget);
+    };
+
+    const submitLead = async (email, from, turnstileToken) => {
+      const response = await fetch(leadsUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          applicationId,
+          metadata: buildLeadMetadata(from),
+          turnstileToken,
+        }),
+      });
+      if (!response.ok) throw new Error("Request failed with status " + response.status);
+    };
+
+    document.querySelectorAll("[data-lead-form]").forEach((form) => {
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const input = form.querySelector('input[type="email"]');
+        const button = form.querySelector('button[type="submit"]');
+        const email = input ? input.value.trim() : "";
+        const from = form.getAttribute("data-from") || "unknown";
+
+        if (!input || !input.checkValidity() || !email) {
+          if (input) input.reportValidity();
+          return;
+        }
+
+        const turnstileToken = turnstileEnabled ? getTurnstileToken(form) : "";
+        if (turnstileEnabled && !turnstileToken) {
+          track("lead_submit_error", { from, reason: "turnstile_pending" });
+          showToast(toast.error, true);
+          return;
+        }
+
+        track("lead_submit_attempt", { from });
+
+        if (button) button.disabled = true;
+        form.setAttribute("aria-busy", "true");
+
+        try {
+          await submitLead(email, from, turnstileToken);
+          track("lead_submit_success", { from });
+          if (input) input.value = "";
+          if (modal && form.closest("[data-lead-modal]")) closeModal();
+          showToast(toast.success, false);
+        } catch (error) {
+          track("lead_submit_error", { from, reason: (error && error.message) || "unknown" });
+          showToast(toast.error, true);
+        } finally {
+          resetTurnstile(form);
+          if (button) button.disabled = false;
+          form.removeAttribute("aria-busy");
+        }
+      });
+    });
+  })();
+</script>

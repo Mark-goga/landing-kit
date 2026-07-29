@@ -1,0 +1,47 @@
+---
+import { getCollection, type CollectionEntry } from "astro:content";
+import GeneratedBlogArticleLayout from "../../layouts/GeneratedBlogArticleLayout.astro";
+import { assertNoRouteCollision } from "../../lib/blog-collision";
+import { HUMAN_BLOG_SLUGS } from "@site/config/generated-blog-collision";
+
+export async function getStaticPaths() {
+  const all = await getCollection("blog");
+  const english = all.filter((entry: CollectionEntry<"blog">) => entry.data.locale === "en");
+
+  const nonColliding = english.filter(
+    (entry: CollectionEntry<"blog">) => !HUMAN_BLOG_SLUGS.includes(entry.data.slug),
+  );
+
+  const generatedCollisions = english.filter((entry: CollectionEntry<"blog">) =>
+    HUMAN_BLOG_SLUGS.includes(entry.data.slug),
+  );
+  assertNoRouteCollision(
+    generatedCollisions.map((e) => ({ locale: e.data.locale, slug: e.data.slug })),
+    HUMAN_BLOG_SLUGS,
+  );
+
+  const byGroup = new Map<string, CollectionEntry<"blog">[]>();
+  for (const e of all) {
+    const list = byGroup.get(e.data.translationGroupId) ?? [];
+    list.push(e);
+    byGroup.set(e.data.translationGroupId, list);
+  }
+
+  return nonColliding.map((entry: CollectionEntry<"blog">) => ({
+    params: { slug: entry.data.slug },
+    props: {
+      entry,
+      translations: (byGroup.get(entry.data.translationGroupId) ?? []).filter(
+        (t: CollectionEntry<"blog">) => t.id !== entry.id,
+      ),
+    },
+  }));
+}
+
+const { entry, translations } = Astro.props as {
+  entry: CollectionEntry<"blog">;
+  translations: CollectionEntry<"blog">[];
+};
+---
+
+<GeneratedBlogArticleLayout entry={entry} translations={translations} />

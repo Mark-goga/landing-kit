@@ -1,0 +1,782 @@
+---
+import { render, type CollectionEntry } from "astro:content";
+import PageLayout from "./PageLayout.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import Modal from "../components/Modal.astro";
+import FaqAccordion from "../components/FaqAccordion.astro";
+import { siteConfig, absoluteUrl, supportedLocales, type LocaleKey } from "../config/site";
+import { brandTokens } from "@site/config/brand";
+import { landingContent, localeMeta, type LanguageOption } from "@site/data/locales";
+
+interface Props {
+  entry: CollectionEntry<"blog">;
+  translations: CollectionEntry<"blog">[];
+}
+
+const { entry, translations } = Astro.props;
+
+const data = entry.data;
+const locale: LocaleKey = data.locale;
+const content = landingContent[locale];
+
+const routePath =
+  locale === "en" ? `/blog/${data.slug}/` : `/${locale}/blog/${data.slug}/`;
+
+const localePath = (l: LocaleKey, slug: string): string =>
+  l === "en" ? `/blog/${slug}/` : `/${l}/blog/${slug}/`;
+
+const byLocale = new Map<LocaleKey, string>();
+for (const t of translations) {
+  byLocale.set(t.data.locale, t.data.slug);
+}
+byLocale.set(locale, data.slug);
+
+const languageNav: LanguageOption[] = supportedLocales.map((option) => {
+  const slugForLocale = byLocale.get(option.key);
+  const href = slugForLocale ? localePath(option.key, slugForLocale) : option.path;
+  return {
+    locale: option.key,
+    code: localeMeta[option.key].code,
+    name: localeMeta[option.key].name,
+    href,
+  };
+});
+
+type AlternateLink = { hreflang: string; href: string };
+
+const alternates: AlternateLink[] = supportedLocales
+  .map((option): AlternateLink | null => {
+    const slugForLocale = byLocale.get(option.key);
+    if (!slugForLocale) return null;
+    return {
+      hreflang: option.hreflang,
+      href: absoluteUrl(localePath(option.key, slugForLocale)),
+    };
+  })
+  .filter((a): a is AlternateLink => a !== null);
+
+const englishSlug = byLocale.get("en");
+if (englishSlug) {
+  alternates.push({
+    hreflang: "x-default",
+    href: absoluteUrl(localePath("en", englishSlug)),
+  });
+}
+
+const { Content } = await render(entry);
+
+const getYouTubeEmbedUrl = (videoUrl: string): string | null => {
+  try {
+    const url = new URL(videoUrl);
+    const id =
+      url.hostname === "youtu.be"
+        ? url.pathname.slice(1)
+        : url.hostname.endsWith("youtube.com")
+          ? url.searchParams.get("v")
+          : null;
+    return id && /^[A-Za-z0-9_-]{11}$/.test(id)
+      ? `https://www.youtube-nocookie.com/embed/${id}`
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const videoEmbedUrl = data.pageType === "video_summary" ? getYouTubeEmbedUrl(data.videoUrl) : null;
+
+const publishedDate = new Date(data.createdAt);
+const formattedDate = Number.isNaN(publishedDate.getTime())
+  ? data.createdAt
+  : publishedDate.toISOString().slice(0, 10);
+
+const articleSchema = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: data.title,
+  description: data.metaDescription,
+  datePublished: publishedDate.toISOString(),
+  dateModified: publishedDate.toISOString(),
+  mainEntityOfPage: absoluteUrl(routePath),
+  author: {
+    "@type": "Person",
+    name: data.author.name,
+    ...(data.author.links.website ? { url: data.author.links.website } : {}),
+  },
+  publisher: {
+    "@type": "Organization",
+    name: siteConfig.name,
+    url: absoluteUrl("/"),
+  },
+};
+
+const faqSchema = data.faq.length
+  ? {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: data.faq.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
+    }
+  : null;
+---
+
+<PageLayout
+  title={`${data.title} | ${siteConfig.name}`}
+  description={data.metaDescription}
+  canonicalPath={routePath}
+  routePath={routePath}
+  lang={locale}
+  alternates={alternates}
+  openGraphType="article"
+  openGraphImage={brandTokens.ogImagePath}
+>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
+  {faqSchema && <script slot="head" type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
+  <Header content={content} routePath={routePath} languageNav={languageNav} />
+
+  <main class="article-page">
+    <article class="article">
+      <div class="article-header">
+        <p class="article-category">Knowledge Hub</p>
+        <h1 class="article-title">{data.title}</h1>
+        <p class="article-subtitle">{data.metaDescription}</p>
+        <div class="article-meta">
+          <span>{data.author.name}</span>
+          <span class="article-meta-dot">·</span>
+          <span>{formattedDate}</span>
+        </div>
+        {data.heroImage && <img src={data.heroImage} alt="" class="article-hero-image" />}
+      </div>
+
+      <div class="article-body">
+        <Content />
+      </div>
+
+      {videoEmbedUrl && (
+        <section class="article-video" aria-label="Source video">
+          <iframe
+            src={videoEmbedUrl}
+            title={data.title}
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          />
+        </section>
+      )}
+
+      {data.pageType === "template" && data.importUrl && (
+        <section class="article-import">
+          <a class="btn-primary" href={data.importUrl}>Use this template</a>
+        </section>
+      )}
+
+      {data.faq.length > 0 && (
+        <section class="article-faq" aria-labelledby="faq-title">
+          <h2 id="faq-title">Frequently Asked Questions</h2>
+          <FaqAccordion items={data.faq} />
+        </section>
+      )}
+
+      <section class="article-cta">
+        <button type="button" class="btn-primary" data-modal-open data-from={`generated-blog:${data.slug}`}>
+          {content.cta.submit.label}
+        </button>
+      </section>
+
+      <aside class="article-author">
+        <div class="author-card">
+          {data.author.photoUrl && (
+            <img src={data.author.photoUrl} alt={data.author.name} class="author-photo" />
+          )}
+          <div class="author-body">
+            <p class="author-name">{data.author.name}</p>
+            {data.author.role && <p class="author-role">{data.author.role}</p>}
+            {data.author.bio
+              .filter((b) => b.locale === locale || b.locale === "en")
+              .slice(0, 1)
+              .map((b) => (
+                <p class="author-bio">{b.text}</p>
+              ))}
+            <ul class="author-links">
+              {data.author.links.linkedin && (
+                <li>
+                  <a href={data.author.links.linkedin} rel="noopener nofollow">LinkedIn</a>
+                </li>
+              )}
+              {data.author.links.twitter && (
+                <li>
+                  <a href={data.author.links.twitter} rel="noopener nofollow">Twitter</a>
+                </li>
+              )}
+              {data.author.links.github && (
+                <li>
+                  <a href={data.author.links.github} rel="noopener nofollow">GitHub</a>
+                </li>
+              )}
+              {data.author.links.website && (
+                <li>
+                  <a href={data.author.links.website} rel="noopener nofollow">Website</a>
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>
+      </aside>
+
+      {data.sources.length > 0 && (
+        <section class="article-sources">
+          <h2 class="sources-title">Sources</h2>
+          <ul class="sources-list">
+            {data.sources.map((source) => (
+              <li>
+                <a href={source.url} rel="noopener nofollow">
+                  {source.title ?? source.url}
+                </a>
+                {source.creator && <span class="source-creator"> - {source.creator}</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {data.references.length > 0 && (
+        <section class="article-sources article-references">
+          <h2 class="sources-title">References</h2>
+          <ul class="sources-list">
+            {data.references.map((reference) => (
+              <li><a href={reference.url} rel="noopener nofollow">{reference.label}</a></li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {data.relatedPosts.length > 0 && (
+        <section class="article-related" aria-labelledby="related-title">
+          <h2 id="related-title">Keep learning</h2>
+          <div class="related-posts">
+            {data.relatedPosts.map((post) => (
+              <a class="related-post" href={post.href}>
+                <div class="related-post-copy">
+                  <span>Read next</span>
+                  <h3>{post.title}</h3>
+                  <p>{post.metaDescription}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+    </article>
+  </main>
+
+  <Footer content={content} routePath={routePath} />
+  <Modal content={content} />
+</PageLayout>
+
+<script define:vars={{ leadsUrl: `${siteConfig.leadsApiUrl}/leads`, applicationId: siteConfig.applicationId, toast: content.toast, turnstileEnabled: Boolean(siteConfig.turnstileSiteKey) }}>
+  (() => {
+    const modal = document.querySelector("[data-lead-modal]");
+    const toastEl = document.querySelector("[data-lead-toast]");
+    let toastTimer, lastFocused = null;
+
+    const showToast = (message, isError) => {
+      if (!toastEl) return;
+      toastEl.textContent = message;
+      toastEl.classList.toggle("lead-toast--error", Boolean(isError));
+      toastEl.hidden = false;
+      void toastEl.offsetWidth;
+      toastEl.classList.add("lead-toast--visible");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toastEl.classList.remove("lead-toast--visible");
+        setTimeout(() => { toastEl.hidden = true; }, 300);
+      }, 4000);
+    };
+
+    const openModal = (from) => {
+      if (!modal) return;
+      const form = modal.querySelector("[data-lead-form]");
+      if (form && from) form.setAttribute("data-from", from);
+      lastFocused = document.activeElement;
+      modal.hidden = false;
+      void modal.offsetWidth;
+      modal.classList.add("lead-modal--open");
+      document.body.style.overflow = "hidden";
+      const input = modal.querySelector("input");
+      if (input) setTimeout(() => input.focus(), 50);
+    };
+
+    const closeModal = () => {
+      if (!modal) return;
+      modal.classList.remove("lead-modal--open");
+      document.body.style.overflow = "";
+      setTimeout(() => { modal.hidden = true; }, 250);
+      if (lastFocused && typeof lastFocused.focus === "function") lastFocused.focus();
+    };
+
+    document.querySelectorAll("[data-modal-open]").forEach((trigger) => {
+      trigger.addEventListener("click", () => openModal(trigger.getAttribute("data-from")));
+    });
+
+    if (modal) {
+      modal.querySelectorAll("[data-modal-close]").forEach((el) => {
+        el.addEventListener("click", closeModal);
+      });
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modal && !modal.hidden) closeModal();
+    });
+
+    const buildUtmMetadata = () => {
+      const params = new URLSearchParams(window.location.search);
+      return Object.fromEntries(Array.from(params.entries()).filter(([key]) => key.startsWith("utm_")));
+    };
+
+    const buildLeadMetadata = (from) => ({
+      from,
+      page: window.location.href,
+      path: window.location.pathname,
+      locale: document.documentElement.lang || "unknown",
+      referrer: document.referrer,
+      userAgent: navigator.userAgent,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      utm: buildUtmMetadata(),
+    });
+
+    const getTurnstileToken = (form) => {
+      const field = form.querySelector('[name="cf-turnstile-response"]');
+      return field ? field.value : "";
+    };
+
+    const resetTurnstile = (form) => {
+      if (!turnstileEnabled || typeof window.turnstile === "undefined") return;
+      const widget = form.querySelector(".cf-turnstile");
+      if (widget) window.turnstile.reset(widget);
+    };
+
+    document.querySelectorAll("[data-lead-form]").forEach((form) => {
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const input = form.querySelector('input[type="email"]');
+        const button = form.querySelector('button[type="submit"]');
+        const email = input ? input.value.trim() : "";
+        const from = form.getAttribute("data-from") || "unknown";
+        if (!input || !input.checkValidity() || !email) { if (input) input.reportValidity(); return; }
+        const turnstileToken = turnstileEnabled ? getTurnstileToken(form) : "";
+        if (turnstileEnabled && !turnstileToken) { showToast(toast.error, true); return; }
+        if (button) button.disabled = true;
+        form.setAttribute("aria-busy", "true");
+        try {
+          const res = await fetch(leadsUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, applicationId, metadata: buildLeadMetadata(from), turnstileToken }),
+          });
+          if (!res.ok) throw new Error();
+          if (input) input.value = "";
+          if (modal && form.closest("[data-lead-modal]")) closeModal();
+          showToast(toast.success, false);
+        } catch {
+          showToast(toast.error, true);
+        } finally {
+          resetTurnstile(form);
+          if (button) button.disabled = false;
+          form.removeAttribute("aria-busy");
+        }
+      });
+    });
+  })();
+</script>
+
+<style>
+  .article-page {
+    padding-top: 80px;
+    background: #F3F3F3;
+    min-height: 100vh;
+  }
+
+  .article {
+    max-width: 1192px;
+    margin: 0 auto;
+    padding: 60px 24px 100px;
+  }
+
+  .article-header {
+    max-width: 680px;
+    margin: 0 auto 40px;
+  }
+
+  .article-category {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6B6B6B;
+    margin: 0 0 20px;
+  }
+
+  .article-title {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: #0E0E0E;
+    margin: 0 0 16px;
+  }
+
+  .article-subtitle {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #3D3D3D;
+    margin: 0 0 24px;
+  }
+
+  .article-meta {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 14px;
+    color: #6B6B6B;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .article-hero-image {
+    display: block;
+    width: 100%;
+    max-width: 680px;
+    aspect-ratio: 16 / 9;
+    margin: 40px auto 0;
+    object-fit: cover;
+    border-radius: 20px;
+  }
+
+  .article-meta-dot {
+    color: #B0B0B0;
+  }
+
+  .article-body {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .article-body :global(p) {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 20px;
+    line-height: 1.7;
+    color: #1C1C1C;
+    margin: 0 0 28px;
+  }
+
+  .article-body :global(h2) {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #0E0E0E;
+    margin: 52px 0 16px;
+  }
+
+  .article-body :global(h3) {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #0E0E0E;
+    margin: 36px 0 12px;
+  }
+
+  .article-body :global(a) {
+    color: #4C27E3;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .article-body :global(ul),
+  .article-body :global(ol) {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 20px;
+    line-height: 1.7;
+    color: #1C1C1C;
+    margin: 0 0 28px;
+    padding-left: 28px;
+  }
+
+  .article-body :global(li) {
+    margin-bottom: 12px;
+  }
+
+  .article-body :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 36px 0;
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #1C1C1C;
+  }
+
+  .article-body :global(th),
+  .article-body :global(td) {
+    padding: 14px 16px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #DCDCDC;
+  }
+
+  .article-body :global(th) {
+    color: #0E0E0E;
+    font-weight: 700;
+    border-top: 1px solid #BDBDBD;
+    background: #EAEAEA;
+  }
+
+  .article-body :global(tbody tr:last-child td) {
+    border-bottom-color: #BDBDBD;
+  }
+
+  .article-body :global(td > :first-child),
+  .article-body :global(th > :first-child) {
+    margin-top: 0;
+  }
+
+  .article-body :global(td > :last-child),
+  .article-body :global(th > :last-child) {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 640px) {
+    .article-body :global(table) {
+      display: block;
+      overflow-x: auto;
+      white-space: normal;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .article-body :global(th),
+    .article-body :global(td) {
+      min-width: 164px;
+      padding: 12px;
+    }
+  }
+
+  .article-author {
+    max-width: 680px;
+    margin: 60px auto 0;
+    padding-top: 40px;
+    border-top: 1px solid #E8E8E8;
+  }
+
+  .article-faq {
+    max-width: 680px;
+    margin: 64px auto 0;
+    padding-top: 40px;
+    border-top: 1px solid #D5D5D5;
+  }
+
+  .article-video,
+  .article-import {
+    max-width: 680px;
+    margin: 48px auto 0;
+  }
+
+  .article-video {
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #1C1C1C;
+  }
+
+  .article-video iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .article-import {
+    text-align: center;
+  }
+
+  .article-faq h2 {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: clamp(26px, 3vw, 32px);
+    line-height: 1.25;
+    color: #0E0E0E;
+    margin: 0 0 24px;
+  }
+
+  .author-card {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .author-photo {
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .author-body {
+    flex: 1;
+  }
+
+  .author-name {
+    font-family: 'Roboto Flex', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: #0E0E0E;
+    margin: 0 0 4px;
+  }
+
+  .author-role {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 14px;
+    color: #6B6B6B;
+    margin: 0 0 8px;
+  }
+
+  .author-bio {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 15px;
+    color: #3D3D3D;
+    margin: 0 0 8px;
+    line-height: 1.5;
+  }
+
+  .author-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .author-links a {
+    color: #4C27E3;
+    font-size: 13px;
+    text-decoration: none;
+  }
+
+  .article-sources {
+    max-width: 680px;
+    margin: 40px auto 0;
+    padding-top: 32px;
+    border-top: 1px solid #E8E8E8;
+  }
+
+  .article-related {
+    max-width: 680px;
+    margin: 56px auto 0;
+    padding-top: 40px;
+    border-top: 1px solid #E8E8E8;
+  }
+
+  .article-related h2 {
+    margin: 0 0 20px;
+    color: #0E0E0E;
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 28px;
+    line-height: 1.2;
+  }
+
+  .related-posts {
+    display: grid;
+    gap: 12px;
+  }
+
+  .related-post {
+    padding: 12px;
+    border-radius: 18px;
+    color: inherit;
+    text-decoration: none;
+    transition: background-color 160ms ease, transform 160ms ease;
+  }
+
+  .related-post:hover {
+    background: #E9E7F3;
+    transform: translateY(-1px);
+  }
+
+  .related-post:focus-visible {
+    outline: 3px solid #4C27E3;
+    outline-offset: 3px;
+  }
+
+  .related-post-copy span {
+    color: #6B6B6B;
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .related-post-copy h3 {
+    margin: 4px 0 6px;
+    color: #0E0E0E;
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 18px;
+    line-height: 1.25;
+  }
+
+  .related-post-copy p {
+    margin: 0;
+    color: #555;
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+
+  .article-references {
+    margin-top: 28px;
+  }
+
+  .sources-title {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #6B6B6B;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 16px;
+  }
+
+  .sources-list {
+    padding-left: 20px;
+    margin: 0;
+  }
+
+  .sources-list li {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #6B6B6B;
+    margin-bottom: 10px;
+  }
+
+  .sources-list a {
+    color: #6B6B6B;
+    text-decoration: underline;
+  }
+
+  .source-creator {
+    color: #9A9A9A;
+  }
+
+  .article-cta {
+    max-width: 680px;
+    margin: 48px auto 0;
+    text-align: center;
+  }
+</style>

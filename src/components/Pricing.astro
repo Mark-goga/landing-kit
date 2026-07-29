@@ -1,0 +1,57 @@
+---
+import type { LandingContent } from "@site/data/locales";
+
+interface Props {
+  content: LandingContent;
+}
+
+const { content } = Astro.props;
+
+const leadFromByEvent: Record<string, string> = {
+  pricing_free_click: "price-card-free",
+  pricing_premium_click: "price-card-premium",
+  pricing_premium_plus_click: "price-card-premium-plus",
+};
+---
+
+<section class="pricing" id="pricing">
+  <div class="pricing-header">
+    <h2 class="section-title" set:html={content.pricing.titleHtml} />
+  </div>
+  <div class="pricing-grid">
+    {
+      content.pricing.cards.map((card) => (
+        <div class={`pricing-card${card.featured ? " pricing-card--featured" : ""}`}>
+          {card.badge && <div class="pricing-badge">{card.badge}</div>}
+          <div>
+            <div class="pricing-name">{card.name}</div>
+            {card.description && <p class="pricing-desc">{card.description}</p>}
+            <div class="pricing-price">
+              <span class="pricing-amount">{card.amount}</span>
+              <span class="pricing-period">{card.period}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class={`pricing-btn pricing-btn--${card.cta.variant}`}
+            data-clarity-event={card.cta.clarityEvent}
+            data-modal-open
+            data-from={leadFromByEvent[card.cta.clarityEvent] ?? "price-card"}
+          >
+            {card.cta.label}
+          </button>
+          <ul class="pricing-features">
+            {card.features.map((feature) => (
+              <li class={feature.included ? "" : "disabled"}>
+                <span class={`check ${feature.included ? "check--yes" : "check--no"}`}>
+                  {feature.included ? "✓" : "✗"}
+                </span>
+                {feature.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </div>
+</section>

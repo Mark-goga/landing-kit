@@ -1,0 +1,28 @@
+---
+import { pageAssetUrl } from "../config/site";
+import type { LandingContent } from "@site/data/locales";
+
+interface Props {
+  content: LandingContent;
+  routePath: string;
+}
+
+const { content, routePath } = Astro.props;
+---
+
+<section class="why-fluxo" id="why">
+  <h2 class="section-title" set:html={content.why.titleHtml} />
+  <div class="cards-grid">
+    {
+      content.why.cards.map((card) => (
+        <div class="card">
+          <img class="card-image" src={pageAssetUrl(routePath, card.image)} alt={card.imageAlt} />
+          <div class="card-body">
+            <p class="card-title">{card.title}</p>
+            <p class="card-desc">{card.desc}</p>
+          </div>
+        </div>
+      ))
+    }
+  </div>
+</section>

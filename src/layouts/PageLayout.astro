@@ -1,0 +1,80 @@
+---
+import { absoluteUrl, pageAssetUrl, siteConfig } from "../config/site";
+import { brandTokens } from "@site/config/brand";
+import TrackingScripts from "../components/TrackingScripts.astro";
+import TurnstileScript from "../components/TurnstileScript.astro";
+import "@site/styles/styles.css";
+
+interface Props {
+  title: string;
+  description: string;
+  canonicalPath: string;
+  routePath: string;
+  lang?: string;
+  baseHref?: string;
+  robots?: string;
+  alternates?: { hreflang: string; href: string }[];
+  openGraphType?: "website" | "article";
+  openGraphImage?: string;
+}
+
+const {
+  title,
+  description,
+  canonicalPath,
+  routePath,
+  lang = "en",
+  baseHref,
+  robots = "index, follow",
+  alternates = [],
+  openGraphType = "website",
+  openGraphImage,
+} = Astro.props;
+const canonicalUrl = absoluteUrl(canonicalPath);
+const openGraphImageUrl = openGraphImage ? absoluteUrl(openGraphImage) : undefined;
+const scriptPath = pageAssetUrl(routePath, siteConfig.scriptPath);
+const favicon = pageAssetUrl(routePath, brandTokens.faviconPath);
+const faviconDark = pageAssetUrl(routePath, brandTokens.faviconDarkPath);
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {baseHref && <base href={baseHref} />}
+    <title>{title}</title>
+    <TrackingScripts />
+    <TurnstileScript />
+
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:type" content={openGraphType} />
+    <meta property="og:site_name" content={siteConfig.name} />
+    {openGraphImageUrl && <meta property="og:image" content={openGraphImageUrl} />}
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {openGraphImageUrl && <meta name="twitter:image" content={openGraphImageUrl} />}
+    <meta name="robots" content={robots} />
+    <meta name="theme-color" content={brandTokens.themeColor} />
+    <link rel="icon" type="image/png" href={favicon} />
+    <link rel="icon" type="image/png" href={faviconDark} media="(prefers-color-scheme: dark)" />
+    <link rel="apple-touch-icon" href={favicon} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href={brandTokens.googleFontsUrl}
+      rel="stylesheet"
+    />
+    <link rel="canonical" href={canonicalUrl} />
+    {alternates.map((alternate) => <link rel="alternate" hreflang={alternate.hreflang} href={alternate.href} />)}
+    <slot name="head" />
+  </head>
+  <body>
+    <slot />
+    <script src={scriptPath} defer></script>
+  </body>
+</html>

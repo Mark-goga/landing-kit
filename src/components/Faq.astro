@@ -1,0 +1,19 @@
+---
+import type { LandingContent } from "@site/data/locales";
+import FaqAccordion from "./FaqAccordion.astro";
+
+interface Props {
+  content: LandingContent;
+}
+
+const { content } = Astro.props;
+---
+
+<section class="faq" id="faq">
+  <div class="faq-layout">
+    <div class="faq-header">
+      <h2 class="section-title" set:html={content.faq.titleHtml} />
+    </div>
+    <FaqAccordion items={content.faq.items} />
+  </div>
+</section>

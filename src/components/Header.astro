@@ -1,0 +1,131 @@
+---
+import { pageAssetUrl } from "../config/site";
+import type { LandingContent, LanguageOption } from "@site/data/locales";
+
+interface Props {
+  content: LandingContent;
+  routePath: string;
+  languageNav: LanguageOption[];
+}
+
+const { content, routePath, languageNav } = Astro.props;
+const logo = pageAssetUrl(routePath, "assets/logo-fluxo.png");
+const currentLocale = content.key;
+const currentLanguage = languageNav.find((option) => option.locale === currentLocale) ?? languageNav[0];
+const resolveHeaderHref = (href: string) => (href.startsWith("#") && href.length > 1 ? `${content.path}${href}` : href);
+---
+
+<header>
+  <div class="header-wrapper">
+    <a href={content.path} class="logo" aria-label={content.header.homeAria}>
+      <img src={logo} alt={content.footer.brandAlt} height="28" />
+    </a>
+    <nav class="nav">
+      {content.header.nav.map((link) => <a href={resolveHeaderHref(link.href)} class="nav-link">{link.label}</a>)}
+    </nav>
+    <div class="header-end">
+      <div class="header-right">
+        <div class="lang-switch" data-lang-switch>
+          <button
+            type="button"
+            class="lang-switch-btn"
+            aria-haspopup="listbox"
+            aria-expanded="false"
+            aria-label={content.header.languageAria}
+          >
+
+            <span class="lang-switch-code">{currentLanguage.code}</span>
+            <svg class="lang-switch-chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <ul class="lang-switch-menu" role="listbox" aria-label={content.header.languageAria}>
+            {
+              languageNav.map((option) => (
+                <li role="presentation">
+                  <a
+                    href={option.href}
+                    lang={option.locale}
+                    role="option"
+                    aria-selected={option.locale === currentLocale ? "true" : "false"}
+                    class={`lang-switch-option${option.locale === currentLocale ? " is-current" : ""}`}
+                  >
+                    <span class="lang-switch-option-code">{option.code}</span>
+                    <span class="lang-switch-option-name">{option.name}</span>
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+        <button
+          type="button"
+          class="btn-secondary"
+          data-clarity-event={content.header.cta.clarityEvent}
+          data-modal-open
+          data-from="header-cta"
+        >
+          {content.header.cta.label}
+        </button>
+      </div>
+      <button class="burger" aria-label="Menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const header = document.querySelector('header')!;
+    const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 80);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    const langSwitch = document.querySelector('[data-lang-switch]');
+    if (langSwitch) {
+      const toggle = langSwitch.querySelector('.lang-switch-btn') as HTMLButtonElement;
+      const setOpen = (open: boolean) => {
+        langSwitch.classList.toggle('open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+      };
+      toggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        setOpen(!langSwitch.classList.contains('open'));
+      });
+      document.addEventListener('click', (event) => {
+        if (!langSwitch.contains(event.target as Node)) setOpen(false);
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') setOpen(false);
+      });
+    }
+  </script>
+
+  <nav class="mobile-nav" id="mobileNav">
+    {content.header.nav.map((link) => <a href={resolveHeaderHref(link.href)} class="nav-link">{link.label}</a>)}
+    <button
+      type="button"
+      class="btn-secondary"
+      data-clarity-event={content.header.cta.clarityEvent}
+      data-modal-open
+      data-from="header-cta"
+    >
+      {content.header.cta.label}
+    </button>
+    <div class="mobile-langs">
+      {
+        languageNav.map((option) => (
+          <a
+            href={option.href}
+            lang={option.locale}
+            class={`mobile-lang${option.locale === currentLocale ? " is-current" : ""}`}
+            aria-current={option.locale === currentLocale ? "true" : undefined}
+          >
+            <span class="lang-switch-option-code">{option.code}</span>
+            <span class="lang-switch-option-name">{option.name}</span>
+          </a>
+        ))
+      }
+    </div>
+  </nav>
+</header>

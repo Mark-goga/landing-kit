@@ -1,0 +1,80 @@
+---
+import { absoluteUrl, pageAssetUrl, siteConfig, supportedLocales, xDefaultPath } from "../config/site";
+import type { LandingContent } from "@site/data/locales";
+import TrackingScripts from "../components/TrackingScripts.astro";
+import TurnstileScript from "../components/TurnstileScript.astro";
+import "@site/styles/styles.css";
+
+interface Props {
+  content: LandingContent;
+  canonicalPath: string;
+  routePath: string;
+}
+
+const { content, canonicalPath, routePath } = Astro.props;
+const canonicalUrl = absoluteUrl(canonicalPath);
+const heroImageUrl = absoluteUrl(siteConfig.heroImagePath);
+const heroImagePath = pageAssetUrl(routePath, siteConfig.heroImagePath);
+const scriptPath = pageAssetUrl(routePath, siteConfig.scriptPath);
+const favicon = pageAssetUrl(routePath, "assets/favicon.png");
+const faviconDark = pageAssetUrl(routePath, "assets/favicon-dark.png");
+const websiteJson = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: siteConfig.name,
+  description: content.structuredData.description,
+  url: canonicalUrl,
+  inLanguage: content.lang,
+};
+---
+
+<!doctype html>
+<html lang={content.lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{content.meta.title}</title>
+    <TrackingScripts />
+    <TurnstileScript />
+
+    <meta name="description" content={content.meta.description} />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#4C27E3" />
+    <link rel="icon" type="image/png" href={favicon} />
+    <link rel="icon" type="image/png" href={faviconDark} media="(prefers-color-scheme: dark)" />
+    <link rel="apple-touch-icon" href={favicon} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="canonical" href={canonicalUrl} />
+    {
+      supportedLocales.map((locale) => (
+        <link rel="alternate" hreflang={locale.hreflang} href={absoluteUrl(locale.path)} />
+      ))
+    }
+    <link rel="alternate" hreflang="x-default" href={absoluteUrl(xDefaultPath)} />
+    <link rel="preload" as="image" href={heroImagePath} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteConfig.name} />
+    <meta property="og:title" content={content.meta.ogTitle} />
+    <meta property="og:description" content={content.meta.ogDescription} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={heroImageUrl} />
+    <meta property="og:locale" content={content.ogLocale} />
+    <meta property="og:locale:alternate" content={content.ogLocaleAlternate} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={content.meta.twitterTitle} />
+    <meta name="twitter:description" content={content.meta.twitterDescription} />
+    <meta name="twitter:image" content={heroImageUrl} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(websiteJson)}></script>
+  </head>
+  <body>
+    <slot />
+    <script src={scriptPath} defer></script>
+  </body>
+</html>

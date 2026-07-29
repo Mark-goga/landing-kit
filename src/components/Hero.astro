@@ -1,0 +1,42 @@
+---
+import { pageAssetUrl } from "../config/site";
+import type { LandingContent } from "@site/data/locales";
+
+interface Props {
+  content: LandingContent;
+  routePath: string;
+}
+
+const { content, routePath } = Astro.props;
+const heroImage = pageAssetUrl(routePath, "assets/Photo_herosection_NEW.png");
+---
+
+<section class="hero" id="start">
+  <div class="hero-content">
+    <div class="hero-text">
+      <h1 set:html={content.hero.titleHtml} />
+      <p class="hero-body">{content.hero.text}</p>
+    </div>
+    <div class="hero-buttons">
+      <button
+        type="button"
+        class="btn-primary"
+        data-clarity-event={content.hero.primaryCta.clarityEvent}
+        data-modal-open
+        data-from="hero-primary"
+      >
+        {content.hero.primaryCta.label}
+      </button>
+      <a
+        href={content.hero.secondaryCta.href}
+        class="btn-secondary btn-secondary-lg"
+        data-clarity-event={content.hero.secondaryCta.clarityEvent}
+      >
+        {content.hero.secondaryCta.label}
+      </a>
+    </div>
+  </div>
+  <div class="hero-image">
+    <img src={heroImage} alt={content.hero.imageAlt} />
+  </div>
+</section>

@@ -1,0 +1,13 @@
+---
+// Renders a static Termly policy export (Privacy, Cookie, Terms, ...). The page
+// imports the matching `*.html?raw` file and passes it here, so Astro never
+// parses or scopes the third-party markup. To update a document, re-export it
+// from Termly and replace the corresponding .html file.
+interface Props {
+  html: string;
+}
+
+const { html } = Astro.props;
+---
+
+<div class="termly-policy" set:html={html} />

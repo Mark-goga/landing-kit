@@ -1,0 +1,79 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { siteConfig } from "../config/site";
+import { landingContent, landingLanguageNav } from "@site/data/locales";
+
+const routePath = "/";
+const languageNav = landingLanguageNav();
+
+const notFound = {
+  en: {
+    content: landingContent.en,
+    title: "Page not found",
+    body: "The page you're looking for doesn't exist or has been moved.",
+    cta: "Back to home",
+  },
+  uk: {
+    content: landingContent.uk,
+    title: "Сторінку не знайдено",
+    body: "Сторінки, яку ви шукаєте, не існує або її переміщено.",
+    cta: "На головну",
+  },
+  es: {
+    content: landingContent.es,
+    title: "Página no encontrada",
+    body: "La página que buscas no existe o se ha movido.",
+    cta: "Volver al inicio",
+  },
+} as const;
+---
+
+<PageLayout
+  title={`404 — ${notFound.en.title} — ${siteConfig.name}`}
+  description={notFound.en.body}
+  canonicalPath="/"
+  routePath={routePath}
+  lang="en"
+  baseHref="/"
+  robots="noindex, follow"
+>
+  {/* Pick the locale from the URL before the page paints, so the matching
+      version is shown without a flash. /uk* → Ukrainian, everything else → English. */}
+  <script is:inline>
+    (function () {
+      var path = location.pathname;
+      var doc = document.documentElement;
+      if (path === "/uk" || path.indexOf("/uk/") === 0) {
+        doc.classList.add("is-uk");
+        doc.lang = "uk";
+        document.title = "404 — Сторінку не знайдено — Fluxo";
+      } else if (path === "/es" || path.indexOf("/es/") === 0) {
+        doc.classList.add("is-es");
+        doc.lang = "es";
+        document.title = "404 — Página no encontrada — Fluxo";
+      }
+    })();
+  </script>
+
+  {
+    (["en", "uk", "es"] as const).map((locale) => {
+      const data = notFound[locale];
+      return (
+        <div class={`locale-block locale-${locale}`}>
+          <Header content={data.content} routePath={routePath} languageNav={languageNav} />
+          <main class="notfound">
+            <p class="notfound-code">404</p>
+            <h1 class="notfound-title">{data.title}</h1>
+            <p class="notfound-body">{data.body}</p>
+            <a href={data.content.path} class="btn-primary notfound-cta">
+              {data.cta}
+            </a>
+          </main>
+          <Footer content={data.content} routePath={routePath} />
+        </div>
+      );
+    })
+  }
+</PageLayout>

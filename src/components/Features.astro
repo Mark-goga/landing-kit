@@ -1,0 +1,63 @@
+---
+import { pageAssetUrl } from "../config/site";
+import type { LandingContent } from "@site/data/locales";
+
+interface Props {
+  content: LandingContent;
+  routePath: string;
+}
+
+const { content, routePath } = Astro.props;
+const { features } = content;
+
+const sparkle = pageAssetUrl(routePath, "assets/sparkle.svg");
+const cat = pageAssetUrl(routePath, "assets/cat.png");
+
+const allCards = [...features.leftCards, ...features.rightCards];
+---
+
+<section class="features" id="features">
+  <h2 class="section-title" set:html={features.titleHtml} />
+
+  <div class="features-grid-wrap">
+    <div class="features-floating">
+      {allCards.map((card) => (
+        <div class={`feat-sticker feat-sticker--${card.sticker}`}>
+          <img src={pageAssetUrl(routePath, card.icon)} alt={card.iconAlt} />
+        </div>
+      ))}
+      <div class="feat-cat-mini">
+        <img src={cat} alt={features.catAlt} />
+      </div>
+      <div class="feat-ai-badge">
+        <img src={sparkle} alt="" class="feat-ai-icon" /> {features.aiBadge}
+      </div>
+    </div>
+
+    <div class="features-grid">
+      {allCards.map((card) => (
+        <div class="feat-card" style={`background:${card.bg}`}>
+          <div class="feat-card-body">
+            <p class="feat-card-title">{card.title}</p>
+            <p class="feat-card-desc">{card.desc}</p>
+          </div>
+          <div class="feat-card-image" style={`background:${card.imageBg}`}>
+            <img src={pageAssetUrl(routePath, card.image)} alt={card.imageAlt} />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <div class="features-cta">
+    <button
+      type="button"
+      class="btn-primary"
+      data-clarity-event={features.cta.clarityEvent}
+      data-modal-open
+      data-from="features-cta"
+    >
+      {features.cta.label}
+    </button>
+  </div>
+</section>

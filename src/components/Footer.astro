@@ -1,0 +1,62 @@
+---
+import { pageAssetUrl } from "../config/site";
+import type { LandingContent } from "@site/data/locales";
+
+interface Props {
+  content: LandingContent;
+  routePath: string;
+}
+
+const { content, routePath } = Astro.props;
+const logo = pageAssetUrl(routePath, "assets/LOGOFLUXOBlack.png");
+const tiktok = pageAssetUrl(routePath, "assets/TiktokLogo.svg");
+const linkedin = pageAssetUrl(routePath, "assets/basil_linkedin-outline.svg");
+const resolveFooterHref = (href: string) => (href.startsWith("#") && href.length > 1 ? `${content.path}${href}` : href);
+---
+
+<footer class="footer">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <img src={logo} alt={content.footer.brandAlt} />
+      <div class="footer-socials">
+        {
+          content.footer.socials.map((social) => (
+            <a href={social.href} class="footer-social-btn" aria-label={social.label}>
+              {social.label === "TikTok" && <img src={tiktok} alt="" aria-hidden="true" />}
+              {social.label === "X" && <img src={linkedin} alt="" aria-hidden="true" />}
+              {social.label === "Instagram" && (
+                <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect x="2.5" y="2.5" width="15" height="15" rx="4" stroke="white" stroke-width="1.4" />
+                  <circle cx="10" cy="10" r="3.5" stroke="white" stroke-width="1.4" />
+                  <circle cx="14.25" cy="5.75" r="1" fill="white" />
+                </svg>
+              )}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+    <div class="footer-cols">
+      {
+        content.footer.columns.map((column) => (
+          <div class="footer-col">
+            <div class="footer-col-title">{column.title}</div>
+            <ul class="footer-links">
+              {column.links.map((link) => (
+                <li>
+                  <a href={resolveFooterHref(link.href)}>{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span class="footer-copy">{content.footer.copyright}</span>
+    <button type="button" class="footer-consent" onclick="window.displayPreferenceModal && window.displayPreferenceModal()">
+      {content.footer.consentPreferences}
+    </button>
+  </div>
+</footer>
