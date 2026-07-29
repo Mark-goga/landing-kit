@@ -83,4 +83,5 @@ export type BrandTokens = {
   faviconDarkPath: string;
   ogImagePath: string;
   googleFontsUrl: string;
+  logoPath: string;
 };

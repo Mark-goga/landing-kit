@@ -1,5 +1,6 @@
 ---
 import { pageAssetUrl } from "../config/site";
+import { brandTokens } from "@site/config/brand";
 import type { LandingContent, LanguageOption } from "@site/data/locales";
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
 }
 
 const { content, routePath, languageNav } = Astro.props;
-const logo = pageAssetUrl(routePath, "assets/logo-fluxo.png");
+const logo = pageAssetUrl(routePath, brandTokens.logoPath);
 const currentLocale = content.key;
 const currentLanguage = languageNav.find((option) => option.locale === currentLocale) ?? languageNav[0];
 const resolveHeaderHref = (href: string) => (href.startsWith("#") && href.length > 1 ? `${content.path}${href}` : href);
@@ -112,20 +113,5 @@ const resolveHeaderHref = (href: string) => (href.startsWith("#") && href.length
     >
       {content.header.cta.label}
     </button>
-    <div class="mobile-langs">
-      {
-        languageNav.map((option) => (
-          <a
-            href={option.href}
-            lang={option.locale}
-            class={`mobile-lang${option.locale === currentLocale ? " is-current" : ""}`}
-            aria-current={option.locale === currentLocale ? "true" : undefined}
-          >
-            <span class="lang-switch-option-code">{option.code}</span>
-            <span class="lang-switch-option-name">{option.name}</span>
-          </a>
-        ))
-      }
-    </div>
   </nav>
 </header>
