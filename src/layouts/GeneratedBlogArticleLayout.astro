@@ -32,16 +32,17 @@ for (const t of translations) {
 }
 byLocale.set(locale, data.slug);
 
-const languageNav: LanguageOption[] = supportedLocales.map((option) => {
-  const slugForLocale = byLocale.get(option.key);
-  const href = slugForLocale ? localePath(option.key, slugForLocale) : option.path;
-  return {
+// Auto-generated posts don't always ship in every locale — only surface the
+// languages that actually have a translation. Header hides the switcher when
+// this list is <= 1 entry.
+const languageNav: LanguageOption[] = supportedLocales
+  .filter((option) => byLocale.has(option.key))
+  .map((option) => ({
     locale: option.key,
     code: localeMeta[option.key].code,
     name: localeMeta[option.key].name,
-    href,
-  };
-});
+    href: localePath(option.key, byLocale.get(option.key)!),
+  }));
 
 type AlternateLink = { hreflang: string; href: string };
 

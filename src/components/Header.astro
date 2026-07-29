@@ -13,6 +13,9 @@ const { content, routePath, languageNav } = Astro.props;
 const logo = pageAssetUrl(routePath, brandTokens.logoPath);
 const currentLocale = content.key;
 const currentLanguage = languageNav.find((option) => option.locale === currentLocale) ?? languageNav[0];
+// Generated blog posts sometimes ship only one locale — hide the switcher when
+// there is nothing to switch to.
+const showLanguageSwitch = languageNav.length > 1;
 const resolveHeaderHref = (href: string) => (href.startsWith("#") && href.length > 1 ? `${content.path}${href}` : href);
 ---
 
@@ -26,39 +29,40 @@ const resolveHeaderHref = (href: string) => (href.startsWith("#") && href.length
     </nav>
     <div class="header-end">
       <div class="header-right">
-        <div class="lang-switch" data-lang-switch>
-          <button
-            type="button"
-            class="lang-switch-btn"
-            aria-haspopup="listbox"
-            aria-expanded="false"
-            aria-label={content.header.languageAria}
-          >
-
-            <span class="lang-switch-code">{currentLanguage.code}</span>
-            <svg class="lang-switch-chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </button>
-          <ul class="lang-switch-menu" role="listbox" aria-label={content.header.languageAria}>
-            {
-              languageNav.map((option) => (
-                <li role="presentation">
-                  <a
-                    href={option.href}
-                    lang={option.locale}
-                    role="option"
-                    aria-selected={option.locale === currentLocale ? "true" : "false"}
-                    class={`lang-switch-option${option.locale === currentLocale ? " is-current" : ""}`}
-                  >
-                    <span class="lang-switch-option-code">{option.code}</span>
-                    <span class="lang-switch-option-name">{option.name}</span>
-                  </a>
-                </li>
-              ))
-            }
-          </ul>
-        </div>
+        {showLanguageSwitch && (
+          <div class="lang-switch" data-lang-switch>
+            <button
+              type="button"
+              class="lang-switch-btn"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-label={content.header.languageAria}
+            >
+              <span class="lang-switch-code">{currentLanguage.code}</span>
+              <svg class="lang-switch-chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+            <ul class="lang-switch-menu" role="listbox" aria-label={content.header.languageAria}>
+              {
+                languageNav.map((option) => (
+                  <li role="presentation">
+                    <a
+                      href={option.href}
+                      lang={option.locale}
+                      role="option"
+                      aria-selected={option.locale === currentLocale ? "true" : "false"}
+                      class={`lang-switch-option${option.locale === currentLocale ? " is-current" : ""}`}
+                    >
+                      <span class="lang-switch-option-code">{option.code}</span>
+                      <span class="lang-switch-option-name">{option.name}</span>
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+        )}
         <button
           type="button"
           class="btn-secondary"
