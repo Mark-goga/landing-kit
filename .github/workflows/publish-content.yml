@@ -1,0 +1,178 @@
+name: Publish content (reusable)
+
+# Called by each landing's own `.github/workflows/publish-content.yml`. The
+# landing supplies its rebuildId + applicationId and its own APPLICATION_ID,
+# BACKEND_URL, PUBLISHING_API_KEY secrets. The reusable workflow runs the
+# sync script from the kit submodule against the landing's `src/content/blog/generated`.
+on:
+  workflow_call:
+    inputs:
+      rebuildId:
+        description: "Content rebuild UUID from MindAI backend"
+        required: true
+        type: string
+      applicationId:
+        description: "Application UUID owning the rebuild (must match caller secret)"
+        required: true
+        type: string
+      managedContentRoot:
+        description: "Landing-side path where generated MDX is written"
+        required: false
+        type: string
+        default: "src/content/blog/generated"
+      nodeVersion:
+        description: "Node major version to use on the runner"
+        required: false
+        type: string
+        default: "22"
+    secrets:
+      APPLICATION_ID:
+        required: true
+      BACKEND_URL:
+        required: true
+      PUBLISHING_API_KEY:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: content-publish-${{ inputs.applicationId }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout main + submodules
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.nodeVersion }}
+          cache: npm
+
+      - name: Verify application id
+        env:
+          EXPECTED: ${{ secrets.APPLICATION_ID }}
+          INCOMING: ${{ inputs.applicationId }}
+        run: |
+          if [ -z "$EXPECTED" ]; then
+            echo "APPLICATION_ID secret is not configured" >&2
+            exit 1
+          fi
+          if [ "$EXPECTED" != "$INCOMING" ]; then
+            echo "applicationId mismatch: input=$INCOMING expected=$EXPECTED" >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync generated blog content
+        id: sync
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          PUBLISHING_API_KEY: ${{ secrets.PUBLISHING_API_KEY }}
+          APPLICATION_ID: ${{ secrets.APPLICATION_ID }}
+        run: |
+          npx tsx landing-kit/src/scripts/sync-blog-content.ts \
+            --rebuild-id "${{ inputs.rebuildId }}" \
+            --api-key "$PUBLISHING_API_KEY" \
+            --backend-url "$BACKEND_URL" \
+            --managed-root "${{ inputs.managedContentRoot }}" \
+            --application-id "$APPLICATION_ID" > sync-result.json
+          cat sync-result.json
+
+      - name: Assign related posts
+        run: |
+          npx tsx landing-kit/src/scripts/assign-related-posts.ts \
+            --managed-root "${{ inputs.managedContentRoot }}"
+
+      - name: Astro check
+        run: npx astro check
+
+      - name: Commit generated content
+        id: commit
+        env:
+          MANAGED_ROOT: ${{ inputs.managedContentRoot }}
+          REBUILD_ID: ${{ inputs.rebuildId }}
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Only the DB-managed content root is staged. Every other path
+          # (dynamic routes, brand copy, kit) is human-authored and must ship
+          # via a normal PR, not this workflow.
+          git add "$MANAGED_ROOT"
+          if git diff --cached --quiet; then
+            echo "No content changes to commit."
+            echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "chore(content): publish rebuild ${REBUILD_ID}"
+          for attempt in 1 2 3; do
+            if git push origin main; then
+              echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "push attempt $attempt failed; rebasing" >&2
+            git pull --rebase origin main
+          done
+          echo "push failed after retries" >&2
+          exit 1
+
+      - name: Notify backend — complete
+        if: success()
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          PUBLISHING_API_KEY: ${{ secrets.PUBLISHING_API_KEY }}
+          REBUILD_ID: ${{ inputs.rebuildId }}
+          COMMIT_SHA: ${{ steps.commit.outputs.commit_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          FILES=$(jq -c '.files' sync-result.json)
+          BODY=$(jq -nc \
+            --arg githubRunId "$RUN_ID" \
+            --arg githubRunUrl "$RUN_URL" \
+            --arg gitCommitSha "$COMMIT_SHA" \
+            --argjson files "$FILES" \
+            '{githubRunId:$githubRunId, githubRunUrl:$githubRunUrl, gitCommitSha:$gitCommitSha, files:$files}')
+          set +e
+          for attempt in 1 2 3; do
+            curl -sS --fail-with-body -X POST \
+              -H "X-API-Key: $PUBLISHING_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "$BODY" \
+              "${BACKEND_URL%/}/content-seo/rebuilds/${REBUILD_ID}/complete"
+            status=$?
+            if [ $status -eq 0 ]; then exit 0; fi
+            echo "complete callback attempt $attempt failed (exit=$status)" >&2
+            sleep $((attempt * 5))
+          done
+          exit 1
+
+      - name: Notify backend — fail
+        if: failure()
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          PUBLISHING_API_KEY: ${{ secrets.PUBLISHING_API_KEY }}
+          REBUILD_ID: ${{ inputs.rebuildId }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          BODY=$(jq -nc \
+            --arg githubRunId "$RUN_ID" \
+            --arg githubRunUrl "$RUN_URL" \
+            --arg errorMessage "Workflow failed. See GitHub Actions run for details." \
+            '{githubRunId:$githubRunId, githubRunUrl:$githubRunUrl, errorMessage:$errorMessage}')
+          curl -sS --fail-with-body -X POST \
+            -H "X-API-Key: $PUBLISHING_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY" \
+            "${BACKEND_URL%/}/content-seo/rebuilds/${REBUILD_ID}/fail" || true
