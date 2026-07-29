@@ -398,7 +398,7 @@ const faqSchema = data.faq.length
 <style>
   .article-page {
     padding-top: 80px;
-    background: #F3F3F3;
+    background: var(--article-bg, #F3F3F3);
     min-height: 100vh;
   }
 
@@ -419,7 +419,7 @@ const faqSchema = data.faq.length
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #6B6B6B;
+    color: var(--article-text-muted, #6B6B6B);
     margin: 0 0 20px;
   }
 
@@ -429,7 +429,7 @@ const faqSchema = data.faq.length
     font-weight: 700;
     line-height: 1.15;
     letter-spacing: -0.02em;
-    color: #0E0E0E;
+    color: var(--article-heading, #0E0E0E);
     margin: 0 0 16px;
   }
 
@@ -438,14 +438,14 @@ const faqSchema = data.faq.length
     font-size: 22px;
     font-weight: 400;
     line-height: 1.5;
-    color: #3D3D3D;
+    color: var(--article-text-secondary, #3D3D3D);
     margin: 0 0 24px;
   }
 
   .article-meta {
     font-family: 'Roboto Flex', sans-serif;
     font-size: 14px;
-    color: #6B6B6B;
+    color: var(--article-text-muted, #6B6B6B);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -474,7 +474,7 @@ const faqSchema = data.faq.length
     font-family: 'Roboto Flex', sans-serif;
     font-size: 20px;
     line-height: 1.7;
-    color: #1C1C1C;
+    color: var(--article-text, #1C1C1C);
     margin: 0 0 28px;
   }
 
@@ -483,7 +483,7 @@ const faqSchema = data.faq.length
     font-size: 28px;
     font-weight: 700;
     line-height: 1.25;
-    color: #0E0E0E;
+    color: var(--article-heading, #0E0E0E);
     margin: 52px 0 16px;
   }
 
@@ -491,12 +491,12 @@ const faqSchema = data.faq.length
     font-family: 'Roboto Flex', sans-serif;
     font-size: 22px;
     font-weight: 600;
-    color: #0E0E0E;
+    color: var(--article-heading, #0E0E0E);
     margin: 36px 0 12px;
   }
 
   .article-body :global(a) {
-    color: #4C27E3;
+    color: var(--article-accent, #4C27E3);
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -506,7 +506,7 @@ const faqSchema = data.faq.length
     font-family: 'Roboto Flex', sans-serif;
     font-size: 20px;
     line-height: 1.7;
-    color: #1C1C1C;
+    color: var(--article-text, #1C1C1C);
     margin: 0 0 28px;
     padding-left: 28px;
   }
@@ -522,7 +522,7 @@ const faqSchema = data.faq.length
     font-family: 'Roboto Flex', sans-serif;
     font-size: 16px;
     line-height: 1.5;
-    color: #1C1C1C;
+    color: var(--article-text, #1C1C1C);
   }
 
   .article-body :global(th),
@@ -530,18 +530,18 @@ const faqSchema = data.faq.length
     padding: 14px 16px;
     text-align: left;
     vertical-align: top;
-    border-bottom: 1px solid #DCDCDC;
+    border-bottom: 1px solid var(--article-border, #DCDCDC);
   }
 
   .article-body :global(th) {
-    color: #0E0E0E;
+    color: var(--article-heading, #0E0E0E);
     font-weight: 700;
-    border-top: 1px solid #BDBDBD;
-    background: #EAEAEA;
+    border-top: 1px solid var(--article-border-strong, #BDBDBD);
+    background: var(--article-th-bg, #EAEAEA);
   }
 
   .article-body :global(tbody tr:last-child td) {
-    border-bottom-color: #BDBDBD;
+    border-bottom-color: var(--article-border-strong, #BDBDBD);
   }
 
   .article-body :global(td > :first-child),
@@ -573,14 +573,14 @@ const faqSchema = data.faq.length
     max-width: 680px;
     margin: 60px auto 0;
     padding-top: 40px;
-    border-top: 1px solid #E8E8E8;
+    border-top: 1px solid var(--article-border, #E8E8E8);
   }
 
   .article-faq {
     max-width: 680px;
     margin: 64px auto 0;
     padding-top: 40px;
-    border-top: 1px solid #D5D5D5;
+    border-top: 1px solid var(--article-border, #D5D5D5);
   }
 
   .article-video,
@@ -610,7 +610,7 @@ const faqSchema = data.faq.length
     font-family: 'Roboto Flex', sans-serif;
     font-size: clamp(26px, 3vw, 32px);
     line-height: 1.25;
-    color: #0E0E0E;
+    color: var(--article-heading, #0E0E0E);
     margin: 0 0 24px;
   }
 
@@ -635,21 +635,21 @@ const faqSchema = data.faq.length
     font-family: 'Roboto Flex', sans-serif;
     font-weight: 700;
     font-size: 18px;
-    color: #0E0E0E;
+    color: var(--article-heading, #0E0E0E);
     margin: 0 0 4px;
   }
 
   .author-role {
     font-family: 'Roboto Flex', sans-serif;
     font-size: 14px;
-    color: #6B6B6B;
+    color: var(--article-text-muted, #6B6B6B);
     margin: 0 0 8px;
   }
 
   .author-bio {
     font-family: 'Roboto Flex', sans-serif;
     font-size: 15px;
-    color: #3D3D3D;
+    color: var(--article-text-secondary, #3D3D3D);
     margin: 0 0 8px;
     line-height: 1.5;
   }
@@ -664,7 +664,7 @@ const faqSchema = data.faq.length
   }
 
   .author-links a {
-    color: #4C27E3;
+    color: var(--article-accent, #4C27E3);
     font-size: 13px;
     text-decoration: none;
   }
@@ -673,19 +673,19 @@ const faqSchema = data.faq.length
     max-width: 680px;
     margin: 40px auto 0;
     padding-top: 32px;
-    border-top: 1px solid #E8E8E8;
+    border-top: 1px solid var(--article-border, #E8E8E8);
   }
 
   .article-related {
     max-width: 680px;
     margin: 56px auto 0;
     padding-top: 40px;
-    border-top: 1px solid #E8E8E8;
+    border-top: 1px solid var(--article-border, #E8E8E8);
   }
 
   .article-related h2 {
     margin: 0 0 20px;
-    color: #0E0E0E;
+    color: var(--article-heading, #0E0E0E);
     font-family: 'Roboto Flex', sans-serif;
     font-size: 28px;
     line-height: 1.2;
@@ -705,17 +705,17 @@ const faqSchema = data.faq.length
   }
 
   .related-post:hover {
-    background: #E9E7F3;
+    background: var(--article-hover-bg, #E9E7F3);
     transform: translateY(-1px);
   }
 
   .related-post:focus-visible {
-    outline: 3px solid #4C27E3;
+    outline: 3px solid var(--article-accent, #4C27E3);
     outline-offset: 3px;
   }
 
   .related-post-copy span {
-    color: #6B6B6B;
+    color: var(--article-text-muted, #6B6B6B);
     font-family: 'Roboto Flex', sans-serif;
     font-size: 13px;
     font-weight: 600;
@@ -723,7 +723,7 @@ const faqSchema = data.faq.length
 
   .related-post-copy h3 {
     margin: 4px 0 6px;
-    color: #0E0E0E;
+    color: var(--article-heading, #0E0E0E);
     font-family: 'Roboto Flex', sans-serif;
     font-size: 18px;
     line-height: 1.25;
@@ -731,7 +731,7 @@ const faqSchema = data.faq.length
 
   .related-post-copy p {
     margin: 0;
-    color: #555;
+    color: var(--article-text-muted, #555);
     font-family: 'Roboto Flex', sans-serif;
     font-size: 14px;
     line-height: 1.45;
@@ -746,7 +746,7 @@ const faqSchema = data.faq.length
     font-family: 'Roboto Flex', sans-serif;
     font-size: 16px;
     font-weight: 600;
-    color: #6B6B6B;
+    color: var(--article-text-muted, #6B6B6B);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin: 0 0 16px;
@@ -761,12 +761,12 @@ const faqSchema = data.faq.length
     font-family: 'Roboto Flex', sans-serif;
     font-size: 14px;
     line-height: 1.6;
-    color: #6B6B6B;
+    color: var(--article-text-muted, #6B6B6B);
     margin-bottom: 10px;
   }
 
   .sources-list a {
-    color: #6B6B6B;
+    color: var(--article-text-muted, #6B6B6B);
     text-decoration: underline;
   }
 
