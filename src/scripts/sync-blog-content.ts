@@ -180,9 +180,12 @@ const main = async (): Promise<void> => {
     );
   }
 
-  const posts: BuildPost[] = exportData.posts.filter(
-    (post): post is BuildPost => post.includedInRebuild,
-  );
+  // Write EVERY post the backend returned — that includes both the
+  // approved-for-this-rebuild set and previously-published posts kept in
+  // the overlay. Filtering by `includedInRebuild` here caused the replace-all
+  // strategy below to delete previously-published articles from the landing
+  // repo whenever they weren't part of the current rebuild's approvals.
+  const posts: BuildPost[] = exportData.posts;
 
   const routeSet = new Set<string>();
   for (const post of posts) {
@@ -198,7 +201,13 @@ const main = async (): Promise<void> => {
   const tmpRoot = `${managedRoot}.tmp-${process.pid}-${Date.now()}`;
   await fs.mkdir(tmpRoot, { recursive: true });
 
-  const desired: Array<{ draftId: string; locale: string; slug: string }> = [];
+  type WrittenPost = {
+    draftId: string;
+    locale: string;
+    slug: string;
+    includedInRebuild: boolean;
+  };
+  const written: WrittenPost[] = [];
   for (const post of posts) {
     const rel = path.join(post.locale, `${post.slug}.md`);
     const dest = path.join(tmpRoot, rel);
@@ -206,24 +215,34 @@ const main = async (): Promise<void> => {
       throw new Error(`Serialized path escaped managed root: ${dest}`);
     }
     await fs.mkdir(path.dirname(dest), { recursive: true });
+    // selectHeroImage reads the currently-published MDX (if any) and returns
+    // its heroImage — so previously-published posts keep their existing image
+    // even though the body/frontmatter are regenerated.
     const heroImage = await selectHeroImage(post, managedRoot);
     const serialized = serializePost(post, heroImage);
     await fs.writeFile(dest, serialized, { encoding: "utf8" });
     parseMarkdown(serialized);
-    desired.push({ draftId: post.draftId, locale: post.locale, slug: post.slug });
+    written.push({
+      draftId: post.draftId,
+      locale: post.locale,
+      slug: post.slug,
+      includedInRebuild: post.includedInRebuild,
+    });
   }
 
   const relRepoRoot = path.relative(process.cwd(), managedRoot);
+  const manifestPosts = written.map((p) => ({
+    draftId: p.draftId,
+    locale: p.locale,
+    slug: p.slug,
+    path: `${relRepoRoot}/${p.locale}/${p.slug}.md`.replace(/\\/g, "/"),
+    includedInRebuild: p.includedInRebuild,
+  }));
   const manifest = {
     schemaVersion: 1 as const,
     rebuildId,
     applicationId,
-    posts: desired.map((p) => ({
-      draftId: p.draftId,
-      locale: p.locale,
-      slug: p.slug,
-      path: `${relRepoRoot}/${p.locale}/${p.slug}.md`.replace(/\\/g, "/"),
-    })),
+    posts: manifestPosts,
   };
   await fs.writeFile(
     path.join(tmpRoot, "manifest.json"),
@@ -247,7 +266,13 @@ const main = async (): Promise<void> => {
     await fs.rename(tmpRoot, managedRoot);
   }
 
-  const files = manifest.posts.map((p) => ({ draftId: p.draftId, path: p.path }));
+  // The `/complete` callback only needs the draftIds the backend expects to
+  // publish (i.e. this rebuild's approved set). Reporting previously-published
+  // posts here would re-trigger publishedPosts.upsert + markPublishedFromRebuild
+  // for content the backend already tracks as published.
+  const files = manifestPosts
+    .filter((p) => p.includedInRebuild)
+    .map((p) => ({ draftId: p.draftId, path: p.path }));
   process.stdout.write(`${JSON.stringify({ files })}\n`);
 };
 
