@@ -11,11 +11,11 @@ import process from "node:process";
 import YAML from "yaml";
 import {
   rebuildControllerExport,
-} from "../src/api/generated/content-publishing";
-import type { ContentBuildExportDto } from "../src/api/generated/model";
-import { rebuildControllerExportResponse } from "../src/api/generated/content-publishing.zod";
-import { createContentPublishingRequestInit } from "../src/api/content-publishing-fetch";
-import { BLOG_HERO_IMAGES, isBlogHeroImage, type BlogHeroImage } from "../src/content/blog-hero-images";
+} from "../api/generated/content-publishing";
+import type { ContentBuildExportDto } from "../api/generated/model";
+import { rebuildControllerExportResponse } from "../api/generated/content-publishing.zod";
+import { createContentPublishingRequestInit } from "../api/content-publishing-fetch";
+import { BLOG_HERO_IMAGES, isBlogHeroImage, type BlogHeroImage } from "@site/content/blog-hero-images";
 
 type BuildPost = ContentBuildExportDto["posts"][number];
 

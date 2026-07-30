@@ -7,9 +7,9 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import YAML from "yaml";
-import { isBlogHeroImage, type BlogHeroImage } from "../src/content/blog-hero-images";
-import type { RelatedPost } from "../src/content/blog-presentation";
-import type { BlogArticle } from "../src/data/locales";
+import { isBlogHeroImage, type BlogHeroImage } from "@site/content/blog-hero-images";
+import type { RelatedPost } from "../content/blog-presentation";
+import type { BlogArticle } from "@site/data/locales";
 
 // `blogContent` is Astro app data. The related-post script only needs it as a
 // read-only catalog, so these fallbacks make that import safe in Node without
@@ -26,7 +26,7 @@ const scriptEnvDefaults: Record<string, string> = {
 for (const [key, value] of Object.entries(scriptEnvDefaults)) {
   process.env[key] ??= value;
 }
-const { blogContent } = await import("../src/data/locales");
+const { blogContent } = await import("@site/data/locales");
 
 const MAX_RELATED_POSTS = 3;
 const SUPPORTED_LOCALES = new Set(["en", "uk", "es", "de"]);
