@@ -4,7 +4,8 @@ import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import Modal from "../components/Modal.astro";
 import { siteConfig, pageAssetUrl, absoluteUrl, type LocaleKey } from "../config/site";
-import { landingContent, blogContent, blogLanguageNav, type BlogSlug } from "@site/data/locales";
+import { landingContent, blogContent, blogLanguageNav, blogPublishDates, type BlogArticle, type BlogSlug } from "@site/data/locales";
+import { brandTokens } from "@site/config/brand";
 
 interface Props {
   slug: string;
@@ -29,6 +30,50 @@ const alternates: Array<{ hreflang: string; href: string }> = languageNav.map((o
   href: absoluteUrl(option.href),
 }));
 alternates.push({ hreflang: "x-default", href: absoluteUrl(blogContent.en[slug as BlogSlug].routePath) });
+
+const heroAssetAbsolute = absoluteUrl(`/${article.heroAsset.replace(/^\/+/, "")}`);
+const ogImageAbsolute = absoluteUrl(brandTokens.ogImagePath);
+
+const articleTyped = article as BlogArticle;
+const publishedDate = new Date(`${blogPublishDates[slug as BlogSlug]}T09:00:00Z`);
+const publishedIso = publishedDate.toISOString();
+const modifiedIso = articleTyped.modifiedAt
+  ? new Date(`${articleTyped.modifiedAt}T09:00:00Z`).toISOString()
+  : publishedIso;
+
+const dateLocaleMap: Record<LocaleKey, string> = {
+  en: "en-US",
+  uk: "uk-UA",
+  es: "es-ES",
+  de: "de-DE",
+};
+const publishedDisplay = publishedDate.toLocaleDateString(dateLocaleMap[locale] ?? "en-US", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+
+const articleSchema = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: article.title,
+  description: article.meta.description,
+  image: [heroAssetAbsolute, ogImageAbsolute],
+  datePublished: publishedIso,
+  dateModified: modifiedIso,
+  mainEntityOfPage: absoluteUrl(routePath),
+  inLanguage: locale,
+  author: {
+    "@type": "Organization",
+    name: article.author,
+    url: absoluteUrl("/"),
+  },
+  publisher: {
+    "@type": "Organization",
+    name: siteConfig.name,
+    url: absoluteUrl("/"),
+  },
+};
 ---
 
 <PageLayout
@@ -38,7 +83,10 @@ alternates.push({ hreflang: "x-default", href: absoluteUrl(blogContent.en[slug a
   routePath={routePath}
   lang={locale}
   alternates={alternates}
+  openGraphType="article"
+  openGraphImage={heroAssetAbsolute}
 >
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
   <Header content={content} routePath={routePath} languageNav={languageNav} />
 
   <main class="article-page">
@@ -50,6 +98,8 @@ alternates.push({ hreflang: "x-default", href: absoluteUrl(blogContent.en[slug a
         <p class="article-subtitle">{article.subtitle}</p>
         <div class="article-meta">
           <span>{article.author}</span>
+          <span class="article-meta-dot">·</span>
+          <time datetime={publishedIso}>{publishedDisplay}</time>
           <span class="article-meta-dot">·</span>
           <span>{article.readTime}</span>
         </div>

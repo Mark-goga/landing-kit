@@ -91,11 +91,14 @@ const formattedDate = Number.isNaN(publishedDate.getTime())
   ? data.createdAt
   : publishedDate.toISOString().slice(0, 10);
 
+const heroImageAbsolute = data.heroImage ? absoluteUrl(data.heroImage) : absoluteUrl(brandTokens.ogImagePath);
+
 const articleSchema = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
   headline: data.title,
   description: data.metaDescription,
+  image: [heroImageAbsolute],
   datePublished: publishedDate.toISOString(),
   dateModified: publishedDate.toISOString(),
   mainEntityOfPage: absoluteUrl(routePath),
@@ -152,7 +155,7 @@ const faqSchema = data.faq.length
           <span class="article-meta-dot">·</span>
           <span>{formattedDate}</span>
         </div>
-        {data.heroImage && <img src={data.heroImage} alt="" class="article-hero-image" />}
+        {data.heroImage && <img src={data.heroImage} alt={`Illustration for: ${data.title}`} class="article-hero-image" loading="lazy" />}
       </div>
 
       <div class="article-body">
