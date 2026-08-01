@@ -194,14 +194,22 @@ describe("sync-blog-content", () => {
     assert.match(body, /> A meaningful quote that belongs to the article\./);
   });
 
-  it("re-run with identical export is byte-identical (idempotent serialization)", async () => {
-    const before = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"));
+  it("updates modifiedAt on every sync while preserving the generated article", async () => {
+    const before = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"), "utf8");
     const beforeManifest = await fs.readFile(path.join(managedRoot, "manifest.json"));
     const result = await invoke();
     assert.equal(result.code, 0, `stderr=${result.stderr}`);
-    const after = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"));
+    const after = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"), "utf8");
     const afterManifest = await fs.readFile(path.join(managedRoot, "manifest.json"));
-    assert.deepEqual(after, before);
+    const beforeModifiedAt = before.match(/^modifiedAt: "([^"]+)"$/mu)?.[1];
+    const afterModifiedAt = after.match(/^modifiedAt: "([^"]+)"$/mu)?.[1];
+    assert.match(beforeModifiedAt ?? "", /^\d{4}-\d{2}-\d{2}T/u);
+    assert.match(afterModifiedAt ?? "", /^\d{4}-\d{2}-\d{2}T/u);
+    assert.notEqual(afterModifiedAt, beforeModifiedAt);
+    assert.equal(
+      after.replace(/^modifiedAt: ".*"\n/mu, ""),
+      before.replace(/^modifiedAt: ".*"\n/mu, ""),
+    );
     assert.deepEqual(afterManifest, beforeManifest);
   });
 

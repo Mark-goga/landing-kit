@@ -9,8 +9,8 @@ import KeepReading from "../components/KeepReading.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import TableOfContents from "../components/TableOfContents.astro";
 import { siteConfig, absoluteUrl, supportedLocales, type LocaleKey } from "../config/site";
-import { brandTokens } from "@site/config/brand";
 import { landingContent, localeMeta, type LanguageOption } from "@site/data/locales";
+import { withBrandSuffix } from "../lib/page-title";
 
 interface Props {
   entry: CollectionEntry<"blog">;
@@ -90,24 +90,34 @@ const getYouTubeEmbedUrl = (videoUrl: string): string | null => {
 const videoEmbedUrl = data.pageType === "video_summary" ? getYouTubeEmbedUrl(data.videoUrl) : null;
 
 const publishedDate = new Date(data.createdAt);
+const modifiedDate = data.modifiedAt ? new Date(data.modifiedAt) : publishedDate;
 const formattedDate = Number.isNaN(publishedDate.getTime())
   ? data.createdAt
   : publishedDate.toISOString().slice(0, 10);
+const pageTitle = withBrandSuffix(data.title, siteConfig.name);
 
-const heroImageAbsolute = data.heroImage ? absoluteUrl(data.heroImage) : absoluteUrl(brandTokens.ogImagePath);
+const heroImageAbsolute = data.heroImage ? absoluteUrl(data.heroImage) : undefined;
 const ogCoverPath = data.locale === "en"
   ? `/assets/covers/${data.slug}.png`
   : `/assets/covers/${data.slug}-${data.locale}.png`;
+const generatedHeroAltPrefix: Record<LocaleKey, string> = {
+  en: "Illustration for",
+  uk: "Ілюстрація до",
+  es: "Ilustración para",
+  de: "Illustration für",
+};
+const generatedHeroAlt = `${generatedHeroAltPrefix[locale]}: ${data.title}`;
 
 const articleSchema = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
   headline: data.title,
   description: data.metaDescription,
-  image: [heroImageAbsolute],
+  ...(heroImageAbsolute ? { image: [heroImageAbsolute] } : {}),
   datePublished: publishedDate.toISOString(),
-  dateModified: publishedDate.toISOString(),
+  dateModified: modifiedDate.toISOString(),
   mainEntityOfPage: absoluteUrl(routePath),
+  inLanguage: locale,
   author: {
     "@type": "Person",
     name: data.author.name,
@@ -137,7 +147,7 @@ const faqSchema = data.faq.length
 ---
 
 <PageLayout
-  title={`${data.title} | ${siteConfig.name}`}
+  title={pageTitle}
   description={data.metaDescription}
   canonicalPath={routePath}
   routePath={routePath}
@@ -145,10 +155,22 @@ const faqSchema = data.faq.length
   alternates={alternates}
   openGraphType="article"
   openGraphImage={ogCoverPath}
+  openGraphImageAlt={generatedHeroAlt}
+  openGraphImageWidth={1200}
+  openGraphImageHeight={630}
+  openGraphImageType="image/png"
+  authorName={data.author.name}
+  articleMeta={{
+    publishedTime: publishedDate.toISOString(),
+    modifiedTime: modifiedDate.toISOString(),
+    author: data.author.name,
+    section: "Knowledge Hub",
+  }}
   surface="muted"
 >
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
   {faqSchema && <script slot="head" type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
+  {data.heroImage && <link slot="head" rel="preload" as="image" href={data.heroImage} fetchpriority="high" />}
   <Header content={content} routePath={routePath} languageNav={languageNav} />
 
   <main class="article-page">
@@ -175,7 +197,16 @@ const faqSchema = data.faq.length
           <span class="article-meta-dot">·</span>
           <span>{formattedDate}</span>
         </div>
-        {data.heroImage && <img src={data.heroImage} alt={`Illustration for: ${data.title}`} class="article-hero-image" loading="lazy" />}
+        {data.heroImage && (
+          <img
+            src={data.heroImage}
+            alt={generatedHeroAlt}
+            class="article-hero-image"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          />
+        )}
       </div>
 
       <div class="article-body">

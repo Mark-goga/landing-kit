@@ -61,6 +61,7 @@ const FRONTMATTER_KEY_ORDER = [
   "title",
   "metaDescription",
   "createdAt",
+  "modifiedAt",
   "translationGroupId",
   "heroImage",
   "relatedPosts",
@@ -131,7 +132,11 @@ const selectHeroImage = async (
   return picked;
 };
 
-const orderedFrontmatter = (post: BuildPost, heroImage?: BlogHeroImage): Frontmatter => {
+const orderedFrontmatter = (
+  post: BuildPost,
+  modifiedAt: string,
+  heroImage?: BlogHeroImage,
+): Frontmatter => {
   const base: Frontmatter = {
     schemaVersion: 1,
     draftId: post.draftId,
@@ -141,6 +146,7 @@ const orderedFrontmatter = (post: BuildPost, heroImage?: BlogHeroImage): Frontma
     title: post.title,
     metaDescription: post.metaDescription,
     createdAt: post.createdAt,
+    modifiedAt,
     translationGroupId: post.translationGroupId,
     faq: post.faq,
     references: post.references,
@@ -161,8 +167,8 @@ const orderedFrontmatter = (post: BuildPost, heroImage?: BlogHeroImage): Frontma
   return ordered;
 };
 
-const serializePost = (post: BuildPost, heroImage?: BlogHeroImage): string => {
-  const yaml = YAML.stringify(orderedFrontmatter(post, heroImage), {
+const serializePost = (post: BuildPost, modifiedAt: string, heroImage?: BlogHeroImage): string => {
+  const yaml = YAML.stringify(orderedFrontmatter(post, modifiedAt, heroImage), {
     defaultStringType: "QUOTE_DOUBLE",
     defaultKeyType: "PLAIN",
     lineWidth: 0,
@@ -247,6 +253,7 @@ const main = async (): Promise<void> => {
   };
   const written: WrittenPost[] = [];
   const heroUsage = await collectHeroUsage(managedRoot);
+  const modifiedAt = new Date().toISOString();
   for (const post of posts) {
     const rel = path.join(post.locale, `${post.slug}.md`);
     const dest = path.join(tmpRoot, rel);
@@ -255,7 +262,7 @@ const main = async (): Promise<void> => {
     }
     await fs.mkdir(path.dirname(dest), { recursive: true });
     const heroImage = await selectHeroImage(post, managedRoot, heroUsage);
-    const serialized = serializePost(post, heroImage);
+    const serialized = serializePost(post, modifiedAt, heroImage);
     await fs.writeFile(dest, serialized, { encoding: "utf8" });
     parseMarkdown(serialized);
     written.push({

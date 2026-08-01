@@ -14,6 +14,8 @@ const frontmatterOverrides = {
   locale: z.enum(["en", "uk", "es", "de"]),
   // Landing-owned presentation choice, persisted by sync after its first selection.
   heroImage: z.string().regex(HERO_IMAGE_ANY_RE).optional(),
+  // Landing-owned freshness signal written by the sync step for every rebuild.
+  modifiedAt: z.iso.datetime().optional(),
   // Landing-owned internal-link graph, assigned by scripts/assign-related-posts.ts.
   relatedPosts: z.array(relatedPostSchema).max(3).default([]),
   // Editor-controlled hero pick on /blog. When true, promotes the post into the
