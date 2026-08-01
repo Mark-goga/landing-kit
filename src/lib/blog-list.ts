@@ -12,7 +12,8 @@ export type BlogCard = {
   title: string;
   description: string;
   category: string;
-  publishedAt: string; // ISO date used for sorting
+  publishedAt: string; // ISO date used for sorting fallback
+  freshnessAt?: string; // ISO date = modifiedAt (or updatedAt for generated) — used as primary sort key
   publishedDisplay: string;
   readTime?: string;
   heroImage?: string;
@@ -112,6 +113,7 @@ export async function getBlogCards(locale: LocaleKey): Promise<BlogCard[]> {
         CATEGORY_BY_PAGETYPE[data.pageType] ??
         "",
       publishedAt: data.createdAt,
+      freshnessAt: data.modifiedAt ?? data.updatedAt ?? data.createdAt,
       publishedDisplay: formatDate(data.createdAt, locale),
       readTime: estimateReadTime(locale),
       heroImage: data.heroImage,
@@ -131,6 +133,9 @@ export async function getBlogCards(locale: LocaleKey): Promise<BlogCard[]> {
       description: data.metaDescription,
       category: data.category,
       publishedAt: `${data.publishedAt}T00:00:00Z`,
+      freshnessAt: data.modifiedAt
+        ? `${data.modifiedAt}T00:00:00Z`
+        : `${data.publishedAt}T00:00:00Z`,
       publishedDisplay: formatDate(`${data.publishedAt}T00:00:00Z`, locale),
       readTime: data.readTime,
       heroImage: `/${data.heroAsset.replace(/^\/+/, "")}`,
@@ -139,12 +144,15 @@ export async function getBlogCards(locale: LocaleKey): Promise<BlogCard[]> {
     });
   }
 
-  // Ordering: featured first, then publishedAt desc, then title asc as a
-  // deterministic tiebreaker (same-day posts should not swap position between
-  // builds).
+  // Ordering: featured first, then freshness (freshnessAt desc), then title asc.
+  // freshnessAt matches sitemap `<lastmod>` semantic — modifiedAt when present,
+  // else publishedAt. Keeps blog index and sitemap in the same order so Google
+  // and users see the same "most-recently-refreshed first" list.
   cards.sort((a, b) => {
     if (a.featured !== b.featured) return a.featured ? -1 : 1;
-    if (a.publishedAt !== b.publishedAt) return a.publishedAt < b.publishedAt ? 1 : -1;
+    const aFresh = a.freshnessAt ?? a.publishedAt;
+    const bFresh = b.freshnessAt ?? b.publishedAt;
+    if (aFresh !== bFresh) return aFresh < bFresh ? 1 : -1;
     return a.title.localeCompare(b.title);
   });
   return cards;

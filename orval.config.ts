@@ -1,11 +1,16 @@
 import { defineConfig } from 'orval';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const specTarget = process.env.MINDAI_SPEC_URL?.trim() || './openapi/mindai.json';
+const configDir = path.dirname(fileURLToPath(import.meta.url));
+const specTarget =
+  process.env.MINDAI_SPEC_URL?.trim() || path.join(configDir, 'src/openapi/mindai.json');
 
 export default defineConfig({
   contentPublishing: {
     input: {
       target: specTarget,
+      parserOptions: { validate: false },
       filters: {
         tags: ['content-seo-publishing'],
       },
@@ -30,6 +35,7 @@ export default defineConfig({
   contentPublishingZod: {
     input: {
       target: specTarget,
+      parserOptions: { validate: false },
       filters: {
         tags: ['content-seo-publishing'],
       },

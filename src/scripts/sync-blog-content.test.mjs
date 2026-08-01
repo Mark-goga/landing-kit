@@ -40,6 +40,7 @@ const buildPost = (overrides = {}) => ({
   faq: [],
   references: [],
   createdAt: "2026-07-28T12:00:00.000Z",
+  updatedAt: "2026-07-29T12:00:00.000Z",
   translationGroupId: DRAFT_ID_A,
   author: buildAuthor(),
   sources: [],
@@ -194,7 +195,7 @@ describe("sync-blog-content", () => {
     assert.match(body, /> A meaningful quote that belongs to the article\./);
   });
 
-  it("updates modifiedAt on every sync while preserving the generated article", async () => {
+  it("uses the backend updatedAt as modifiedAt and preserves it on later syncs", async () => {
     const before = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"), "utf8");
     const beforeManifest = await fs.readFile(path.join(managedRoot, "manifest.json"));
     const result = await invoke();
@@ -205,7 +206,8 @@ describe("sync-blog-content", () => {
     const afterModifiedAt = after.match(/^modifiedAt: "([^"]+)"$/mu)?.[1];
     assert.match(beforeModifiedAt ?? "", /^\d{4}-\d{2}-\d{2}T/u);
     assert.match(afterModifiedAt ?? "", /^\d{4}-\d{2}-\d{2}T/u);
-    assert.notEqual(afterModifiedAt, beforeModifiedAt);
+    assert.equal(beforeModifiedAt, "2026-07-29T12:00:00.000Z");
+    assert.equal(afterModifiedAt, beforeModifiedAt);
     assert.equal(
       after.replace(/^modifiedAt: ".*"\n/mu, ""),
       before.replace(/^modifiedAt: ".*"\n/mu, ""),

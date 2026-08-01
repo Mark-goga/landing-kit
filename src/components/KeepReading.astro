@@ -20,7 +20,7 @@ const { posts, title = "Keep reading", eyebrow = "Read next" } = Astro.props;
             <img
               class="related-post-thumb"
               src={post.heroImage}
-              alt=""
+              alt={post.title}
               loading="lazy"
               decoding="async"
             />

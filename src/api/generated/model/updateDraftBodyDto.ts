@@ -5,8 +5,22 @@
  * template-nest
  * OpenAPI spec version: 1.0
  */
+import type { UpdateDraftBodyDtoFrontmatter } from './updateDraftBodyDtoFrontmatter';
+import type { UpdateDraftBodyDtoOutline } from './updateDraftBodyDtoOutline';
 
 export interface UpdateDraftBodyDto {
   /** @minLength 0 */
   bodyMdx: string;
+  frontmatter?: UpdateDraftBodyDtoFrontmatter;
+  outline?: UpdateDraftBodyDtoOutline;
+  /**
+   * @minLength 1
+   * @maxLength 240
+   */
+  title?: string;
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  metaDescription?: string;
 }
