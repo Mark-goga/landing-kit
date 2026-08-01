@@ -9,24 +9,25 @@ import process from "node:process";
 import YAML from "yaml";
 import { isBlogHeroImage, type BlogHeroImage } from "@site/content/blog-hero-images";
 import type { RelatedPost } from "../content/blog-presentation";
-import type { BlogArticle } from "@site/data/locales";
 
-// `blogContent` is Astro app data. The related-post script only needs it as a
-// read-only catalog, so these fallbacks make that import safe in Node without
-// changing the deploy environment's real values.
-const scriptEnvDefaults: Record<string, string> = {
-  SITE_NAME: "Fluxo",
-  CLARITY_PROJECT_ID: "script",
-  HERO_IMAGE_PATH: "assets/hero.png",
-  SITE_SCRIPT_PATH: "script.js",
-  LEADS_API_URL: "https://fluxo.today/api",
-  APPLICATION_ID: "script",
-  SITE_URL: "https://fluxo.today/",
+type StaticBlogFrontmatter = {
+  slug: string;
+  locale: string;
+  routePath: string;
+  category: string;
+  title: string;
+  subtitle: string;
+  metaTitle: string;
+  metaDescription: string;
+  author: string;
+  readTime: string;
+  heroAsset: string;
+  heroAlt: string;
+  publishedAt: string;
+  modifiedAt?: string;
 };
-for (const [key, value] of Object.entries(scriptEnvDefaults)) {
-  process.env[key] ??= value;
-}
-const { blogContent } = await import("@site/data/locales");
+
+const STATIC_BLOG_ROOT = path.resolve(process.cwd(), "src/content/blog-static");
 
 const MAX_RELATED_POSTS = 3;
 const SUPPORTED_LOCALES = new Set(["en", "uk", "es", "de"]);
@@ -145,33 +146,60 @@ const toArticle = async (file: string, root: string): Promise<Article> => {
   };
 };
 
-const toManualArticle = (locale: string, slug: string, article: BlogArticle): Article => {
-  const heroCandidate = `/${article.heroAsset}`;
+const coverPathFor = (locale: string, slug: string): string =>
+  locale === "en" ? `/assets/covers/${slug}.png` : `/assets/covers/${slug}-${locale}.png`;
+
+const toManualArticle = (file: string, fm: StaticBlogFrontmatter, bodyHtml: string, data: Frontmatter): Article => {
+  const heroCandidate = `/${fm.heroAsset.replace(/^\/+/, "")}`;
   const heroImage = isBlogHeroImage(heroCandidate) ? heroCandidate : undefined;
-  const body = article.bodyHtml.replace(/<[^>]*>/gu, " ");
+  const body = bodyHtml.replace(/<[^>]*>/gu, " ");
   return {
-    file: "",
-    writable: false,
-    key: `${locale}/${slug}`,
-    locale,
-    slug,
-    title: article.title,
-    metaDescription: article.meta.description,
+    file,
+    writable: true,
+    key: `${fm.locale}/${fm.slug}`,
+    locale: fm.locale,
+    slug: fm.slug,
+    title: fm.title,
+    metaDescription: fm.metaDescription,
     pageType: "manual",
-    translationGroupId: `manual:${locale}:${slug}`,
+    translationGroupId: `manual:${fm.locale}:${fm.slug}`,
     heroImage,
-    data: {},
-    body,
-    titleTerms: tokenize(`${slug.replaceAll("-", " ")} ${article.title}`),
-    descriptionTerms: tokenize(article.meta.description),
+    data,
+    body: bodyHtml,
+    titleTerms: tokenize(`${fm.slug.replaceAll("-", " ")} ${fm.title}`),
+    descriptionTerms: tokenize(fm.metaDescription),
     bodyTerms: tokenize(body),
   };
 };
 
-const manualArticles = (): Article[] =>
-  Object.entries(blogContent).flatMap(([locale, entries]) =>
-    Object.entries(entries).map(([slug, article]) => toManualArticle(locale, slug, article)),
-  );
+const manualArticles = async (): Promise<Article[]> => {
+  const out: Article[] = [];
+  let dirs: string[];
+  try {
+    dirs = await fs.readdir(STATIC_BLOG_ROOT);
+  } catch {
+    return out;
+  }
+  for (const locale of dirs) {
+    const dir = path.join(STATIC_BLOG_ROOT, locale);
+    let stat;
+    try { stat = await fs.stat(dir); } catch { continue; }
+    if (!stat.isDirectory()) continue;
+    for (const name of await fs.readdir(dir)) {
+      if (!name.endsWith(".md")) continue;
+      const file = path.join(dir, name);
+      const source = await fs.readFile(file, "utf8");
+      if (!source.startsWith("---\n")) continue;
+      const end = source.indexOf("\n---\n", 4);
+      if (end === -1) continue;
+      const data = YAML.parse(source.slice(4, end)) as Frontmatter;
+      const fm = data as unknown as StaticBlogFrontmatter;
+      const body = source.slice(end + 5);
+      out.push(toManualArticle(file, fm, body, data));
+    }
+  }
+  return out;
+};
 
 const listMarkdownFiles = async (root: string): Promise<string[]> => {
   const files: string[] = [];
@@ -194,14 +222,13 @@ const assignRelatedPosts = (articles: Article[]): Map<string, RelatedPost[]> => 
       (candidate) =>
         candidate.locale === article.locale &&
         candidate.key !== article.key &&
-        candidate.translationGroupId !== article.translationGroupId &&
-        relevance(article, candidate) > 0,
+        candidate.translationGroupId !== article.translationGroupId,
     );
 
     for (let slot = 0; slot < MAX_RELATED_POSTS; slot++) {
       const selectedKeys = graph.get(article.key) ?? new Set<string>();
       const candidate = candidates
-        .filter((item) => !selectedKeys.has(item.key) && !hasPath(graph, item.key, article.key))
+        .filter((item) => !selectedKeys.has(item.key))
         .sort((left, right) => {
           const leftScore = relevance(article, left) * 10 - (inbound.get(left.key) ?? 0) * 3;
           const rightScore = relevance(article, right) * 10 - (inbound.get(right.key) ?? 0) * 3;
@@ -244,13 +271,16 @@ const main = async (): Promise<void> => {
   const generatedArticles = await Promise.all(
     (await listMarkdownFiles(root)).map((file) => toArticle(file, root)),
   );
-  const articles = [...generatedArticles, ...manualArticles()];
+  const staticArticles = await manualArticles();
+  const articles = [...generatedArticles, ...staticArticles];
   const related = assignRelatedPosts(articles);
   await Promise.all(
-    generatedArticles.map((article) => writeArticle(article, related.get(article.key) ?? [])),
+    articles
+      .filter((a) => a.writable)
+      .map((article) => writeArticle(article, related.get(article.key) ?? [])),
   );
   process.stdout.write(
-    `${JSON.stringify({ articles: generatedArticles.length, candidates: articles.length })}\n`,
+    `${JSON.stringify({ generated: generatedArticles.length, static: staticArticles.length, candidates: articles.length })}\n`,
   );
 };
 

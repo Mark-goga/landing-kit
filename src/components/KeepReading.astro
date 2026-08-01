@@ -1,0 +1,125 @@
+---
+import type { RelatedPost } from "../content/blog-presentation";
+
+interface Props {
+  posts: RelatedPost[];
+  title?: string;
+  eyebrow?: string;
+}
+
+const { posts, title = "Keep reading", eyebrow = "Read next" } = Astro.props;
+---
+
+{posts.length > 0 && (
+  <section class="article-related" aria-labelledby="related-title">
+    <h2 id="related-title">{title}</h2>
+    <div class="related-posts">
+      {posts.map((post) => (
+        <a class="related-post" href={post.href}>
+          {post.heroImage && (
+            <img
+              class="related-post-thumb"
+              src={post.heroImage}
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+          )}
+          <div class="related-post-copy">
+            <span>{eyebrow}</span>
+            <h3>{post.title}</h3>
+            <p>{post.metaDescription}</p>
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+)}
+
+<style>
+  .article-related {
+    max-width: 860px;
+    margin: 56px auto 0;
+    padding-top: 40px;
+    border-top: 1px solid var(--article-border, #E8E8E8);
+  }
+
+  .article-related h2 {
+    margin: 0 0 24px;
+    color: var(--article-heading, #0E0E0E);
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 28px;
+    line-height: 1.2;
+  }
+
+  .related-posts {
+    display: grid;
+    gap: 16px;
+  }
+
+  .related-post {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 20px;
+    align-items: center;
+    padding: 12px;
+    border-radius: 18px;
+    color: inherit;
+    text-decoration: none;
+    transition: background-color 160ms ease, transform 160ms ease;
+  }
+
+  .related-post:hover {
+    background: var(--article-hover-bg, #E9E7F3);
+    transform: translateY(-1px);
+  }
+
+  .related-post:focus-visible {
+    outline: 3px solid var(--article-accent, #4C27E3);
+    outline-offset: 3px;
+  }
+
+  .related-post-thumb {
+    width: 100%;
+    height: 112px;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
+    background: #EDE7F9;
+  }
+
+  .related-post-copy span {
+    color: var(--article-text-muted, #6B6B6B);
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .related-post-copy h3 {
+    margin: 6px 0 8px;
+    color: var(--article-heading, #0E0E0E);
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 20px;
+    line-height: 1.25;
+  }
+
+  .related-post-copy p {
+    margin: 0;
+    color: var(--article-text-muted, #555);
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 640px) {
+    .related-post {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .related-post-thumb {
+      height: 180px;
+    }
+  }
+</style>

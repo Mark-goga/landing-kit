@@ -1,11 +1,13 @@
 ---
+import { getEntry, render, getCollection, type CollectionEntry } from "astro:content";
 import PageLayout from "./PageLayout.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import Modal from "../components/Modal.astro";
-import { siteConfig, pageAssetUrl, absoluteUrl, type LocaleKey } from "../config/site";
-import { landingContent, blogContent, blogLanguageNav, blogPublishDates, type BlogArticle, type BlogSlug } from "@site/data/locales";
-import { brandTokens } from "@site/config/brand";
+import FaqAccordion from "../components/FaqAccordion.astro";
+import KeepReading from "../components/KeepReading.astro";
+import { siteConfig, pageAssetUrl, absoluteUrl, supportedLocales, type LocaleKey } from "../config/site";
+import { landingContent, localeMeta, type LanguageOption } from "@site/data/locales";
 
 interface Props {
   slug: string;
@@ -14,31 +16,46 @@ interface Props {
 
 const { slug, locale = "en" } = Astro.props;
 
-const content = landingContent[locale];
-const articles = blogContent[locale] ?? blogContent.en;
-const article = articles[slug as keyof typeof articles];
-
-if (!article) {
+const entry = await getEntry("blogStatic", `${locale}/${slug}`);
+if (!entry) {
   throw new Error(`Unknown blog article "${slug}" for locale "${locale}"`);
 }
 
+const article = entry.data;
+const { Content } = await render(entry);
+const authorObj = article.author;
+const authorName = authorObj.name;
+const authorBioEntry = authorObj.bio.find((b) => b.locale === locale) ?? authorObj.bio.find((b) => b.locale === "en");
+
+const content = landingContent[locale];
 const routePath = article.routePath;
 const heroImage = pageAssetUrl(routePath, article.heroAsset);
-const languageNav = blogLanguageNav(slug as BlogSlug);
-const alternates: Array<{ hreflang: string; href: string }> = languageNav.map((option) => ({
-  hreflang: option.locale,
-  href: absoluteUrl(option.href),
-}));
-alternates.push({ hreflang: "x-default", href: absoluteUrl(blogContent.en[slug as BlogSlug].routePath) });
+
+const allStatic = await getCollection("blogStatic");
+const bySlug = allStatic.filter((e: CollectionEntry<"blogStatic">) => e.data.slug === slug);
+const languageNav: LanguageOption[] = supportedLocales.map((opt) => {
+  const match = bySlug.find((e) => e.data.locale === opt.key);
+  const href = (match ?? bySlug.find((e) => e.data.locale === "en"))?.data.routePath ?? routePath;
+  return { locale: opt.key, href, code: localeMeta[opt.key].code, name: localeMeta[opt.key].name };
+});
+const alternates: Array<{ hreflang: string; href: string }> = supportedLocales.map((opt) => {
+  const match = bySlug.find((e) => e.data.locale === opt.key);
+  const href = (match ?? bySlug.find((e) => e.data.locale === "en"))?.data.routePath ?? routePath;
+  return { hreflang: opt.hreflang, href: absoluteUrl(href) };
+});
+const enEntry = bySlug.find((e) => e.data.locale === "en") ?? entry;
+alternates.push({ hreflang: "x-default", href: absoluteUrl(enEntry.data.routePath) });
 
 const heroAssetAbsolute = absoluteUrl(`/${article.heroAsset.replace(/^\/+/, "")}`);
-const ogImageAbsolute = absoluteUrl(brandTokens.ogImagePath);
+const ogCoverPath = locale === "en"
+  ? `/assets/covers/${slug}.png`
+  : `/assets/covers/${slug}-${locale}.png`;
+const ogCoverAbsolute = absoluteUrl(ogCoverPath);
 
-const articleTyped = article as BlogArticle;
-const publishedDate = new Date(`${blogPublishDates[slug as BlogSlug]}T09:00:00Z`);
+const publishedDate = new Date(`${article.publishedAt}T09:00:00Z`);
 const publishedIso = publishedDate.toISOString();
-const modifiedIso = articleTyped.modifiedAt
-  ? new Date(`${articleTyped.modifiedAt}T09:00:00Z`).toISOString()
+const modifiedIso = article.modifiedAt
+  ? new Date(`${article.modifiedAt}T09:00:00Z`).toISOString()
   : publishedIso;
 
 const dateLocaleMap: Record<LocaleKey, string> = {
@@ -57,8 +74,8 @@ const articleSchema = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
   headline: article.title,
-  description: article.meta.description,
-  image: [heroAssetAbsolute, ogImageAbsolute],
+  description: article.metaDescription,
+  image: [heroAssetAbsolute, ogCoverAbsolute],
   datePublished: publishedIso,
   dateModified: modifiedIso,
   mainEntityOfPage: absoluteUrl(routePath),
@@ -77,39 +94,76 @@ const articleSchema = {
 ---
 
 <PageLayout
-  title={article.meta.title}
-  description={article.meta.description}
+  title={article.metaTitle}
+  description={article.metaDescription}
   canonicalPath={routePath}
   routePath={routePath}
   lang={locale}
   alternates={alternates}
   openGraphType="article"
-  openGraphImage={heroAssetAbsolute}
+  openGraphImage={ogCoverPath}
 >
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
   <Header content={content} routePath={routePath} languageNav={languageNav} />
 
   <main class="article-page">
     <article class="article">
-
       <div class="article-header">
         <p class="article-category">{article.category}</p>
         <h1 class="article-title">{article.title}</h1>
         <p class="article-subtitle">{article.subtitle}</p>
         <div class="article-meta">
-          <span>{article.author}</span>
+          <span>{authorName}</span>
           <span class="article-meta-dot">·</span>
           <time datetime={publishedIso}>{publishedDisplay}</time>
           <span class="article-meta-dot">·</span>
           <span>{article.readTime}</span>
         </div>
+        <img src={heroImage} alt={article.heroAlt} class="article-hero-image" loading="lazy" />
       </div>
 
-      <div class="article-hero">
-        <img src={heroImage} alt={article.heroAlt} />
-      </div>
+      <div class="article-body"><Content /></div>
 
-      <div class="article-body" set:html={article.bodyHtml} />
+      {article.faq && article.faq.length > 0 && (
+        <section class="article-faq" aria-labelledby="faq-title">
+          <h2 id="faq-title">Frequently Asked Questions</h2>
+          <FaqAccordion items={article.faq} />
+        </section>
+      )}
+
+      <section class="article-cta">
+        <button type="button" class="btn-primary" data-modal-open data-from={`static-blog:${slug}`}>
+          {content.cta.submit.label}
+        </button>
+      </section>
+
+      <aside class="article-author">
+        <div class="author-card">
+          {authorObj.photoUrl && (
+            <img src={authorObj.photoUrl} alt={authorName} class="author-photo" />
+          )}
+          <div class="author-body">
+            <p class="author-name">{authorName}</p>
+            {authorObj.role && <p class="author-role">{authorObj.role}</p>}
+            {authorBioEntry && <p class="author-bio">{authorBioEntry.text}</p>}
+            {authorObj.links && (authorObj.links.website || authorObj.links.linkedin || authorObj.links.twitter) && (
+              <ul class="author-links">
+                {authorObj.links.website && (
+                  <li><a href={authorObj.links.website} rel="noopener nofollow">Website</a></li>
+                )}
+                {authorObj.links.linkedin && (
+                  <li><a href={authorObj.links.linkedin} rel="noopener nofollow">LinkedIn</a></li>
+                )}
+                {authorObj.links.twitter && (
+                  <li><a href={authorObj.links.twitter} rel="noopener nofollow">Twitter</a></li>
+                )}
+              </ul>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      <KeepReading posts={article.relatedPosts ?? []} title="Keep reading" />
     </article>
   </main>
 
@@ -248,7 +302,7 @@ const articleSchema = {
 
   /* Header */
   .article-header {
-    max-width: 680px;
+    max-width: 860px;
     margin: 0 auto 40px;
   }
 
@@ -294,25 +348,101 @@ const articleSchema = {
     color: #B0B0B0;
   }
 
-  /* Hero image */
-  .article-hero {
-    max-width: 920px;
-    margin: 0 auto 56px;
-    border-radius: 16px;
-    overflow: hidden;
+  .article-hero-image {
+    display: block;
+    width: 100%;
+    max-width: 860px;
+    aspect-ratio: 16 / 9;
+    margin: 40px auto 0;
+    object-fit: cover;
+    border-radius: 20px;
   }
 
-  .article-hero img {
-    width: 100%;
-    height: auto;
-    display: block;
+  .article-faq {
+    max-width: 860px;
+    margin: 64px auto 0;
+    padding-top: 40px;
+    border-top: 1px solid var(--article-border, #D5D5D5);
+  }
+
+  .article-faq h2 {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: clamp(26px, 3vw, 32px);
+    line-height: 1.25;
+    color: var(--article-heading, #0E0E0E);
+    margin: 0 0 24px;
+    text-align: center;
+  }
+
+  .article-cta {
+    max-width: 860px;
+    margin: 48px auto 0;
+    text-align: center;
+  }
+
+  .article-author {
+    max-width: 860px;
+    margin: 60px auto 0;
+    padding-top: 40px;
+    border-top: 1px solid var(--article-border, #E8E8E8);
+  }
+
+  .author-card {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .author-photo {
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
     object-fit: cover;
-    max-height: 520px;
+  }
+
+  .author-body { flex: 1; }
+
+  .author-name {
+    font-family: 'Roboto Flex', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--article-heading, #0E0E0E);
+    margin: 0 0 4px;
+  }
+
+  .author-role {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 14px;
+    color: var(--article-text-muted, #6B6B6B);
+    margin: 0 0 8px;
+  }
+
+  .author-bio {
+    font-family: 'Roboto Flex', sans-serif;
+    font-size: 15px;
+    color: var(--article-text-secondary, #3D3D3D);
+    margin: 0 0 8px;
+    line-height: 1.5;
+  }
+
+  .author-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .author-links a {
+    color: var(--article-accent, #4C27E3);
+    font-size: 13px;
+    text-decoration: none;
   }
 
   /* Body */
   .article-body {
-    max-width: 680px;
+    max-width: 860px;
     margin: 0 auto;
   }
 

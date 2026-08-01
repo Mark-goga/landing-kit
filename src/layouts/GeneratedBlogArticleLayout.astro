@@ -5,6 +5,7 @@ import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import Modal from "../components/Modal.astro";
 import FaqAccordion from "../components/FaqAccordion.astro";
+import KeepReading from "../components/KeepReading.astro";
 import { siteConfig, absoluteUrl, supportedLocales, type LocaleKey } from "../config/site";
 import { brandTokens } from "@site/config/brand";
 import { landingContent, localeMeta, type LanguageOption } from "@site/data/locales";
@@ -92,6 +93,9 @@ const formattedDate = Number.isNaN(publishedDate.getTime())
   : publishedDate.toISOString().slice(0, 10);
 
 const heroImageAbsolute = data.heroImage ? absoluteUrl(data.heroImage) : absoluteUrl(brandTokens.ogImagePath);
+const ogCoverPath = data.locale === "en"
+  ? `/assets/covers/${data.slug}.png`
+  : `/assets/covers/${data.slug}-${data.locale}.png`;
 
 const articleSchema = {
   "@context": "https://schema.org",
@@ -138,7 +142,7 @@ const faqSchema = data.faq.length
   lang={locale}
   alternates={alternates}
   openGraphType="article"
-  openGraphImage={brandTokens.ogImagePath}
+  openGraphImage={ogCoverPath}
 >
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
   {faqSchema && <script slot="head" type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
@@ -182,7 +186,7 @@ const faqSchema = data.faq.length
 
       {data.faq.length > 0 && (
         <section class="article-faq" aria-labelledby="faq-title">
-          <h2 id="faq-title">Frequently Asked Questions</h2>
+          <h2 id="faq-title" class="faq-title-class">Frequently Asked Questions</h2>
           <FaqAccordion items={data.faq} />
         </section>
       )}
@@ -260,22 +264,8 @@ const faqSchema = data.faq.length
         </section>
       )}
 
-      {data.relatedPosts.length > 0 && (
-        <section class="article-related" aria-labelledby="related-title">
-          <h2 id="related-title">Keep learning</h2>
-          <div class="related-posts">
-            {data.relatedPosts.map((post) => (
-              <a class="related-post" href={post.href}>
-                <div class="related-post-copy">
-                  <span>Read next</span>
-                  <h3>{post.title}</h3>
-                  <p>{post.metaDescription}</p>
-                </div>
-              </a>
-            ))}
-          </div>
-        </section>
-      )}
+      <KeepReading posts={data.relatedPosts} title="Keep reading" />
+
     </article>
   </main>
 
@@ -413,7 +403,7 @@ const faqSchema = data.faq.length
   }
 
   .article-header {
-    max-width: 680px;
+    max-width: 860px;
     margin: 0 auto 40px;
   }
 
@@ -458,7 +448,7 @@ const faqSchema = data.faq.length
   .article-hero-image {
     display: block;
     width: 100%;
-    max-width: 680px;
+    max-width: 860px;
     aspect-ratio: 16 / 9;
     margin: 40px auto 0;
     object-fit: cover;
@@ -470,7 +460,7 @@ const faqSchema = data.faq.length
   }
 
   .article-body {
-    max-width: 680px;
+    max-width: 860px;
     margin: 0 auto;
   }
 
@@ -574,14 +564,14 @@ const faqSchema = data.faq.length
   }
 
   .article-author {
-    max-width: 680px;
+    max-width: 860px;
     margin: 60px auto 0;
     padding-top: 40px;
     border-top: 1px solid var(--article-border, #E8E8E8);
   }
 
   .article-faq {
-    max-width: 680px;
+    max-width: 860px;
     margin: 64px auto 0;
     padding-top: 40px;
     border-top: 1px solid var(--article-border, #D5D5D5);
@@ -589,7 +579,7 @@ const faqSchema = data.faq.length
 
   .article-video,
   .article-import {
-    max-width: 680px;
+    max-width: 860px;
     margin: 48px auto 0;
   }
 
@@ -616,6 +606,7 @@ const faqSchema = data.faq.length
     line-height: 1.25;
     color: var(--article-heading, #0E0E0E);
     margin: 0 0 24px;
+    text-align: center;
   }
 
   .author-card {
@@ -674,14 +665,14 @@ const faqSchema = data.faq.length
   }
 
   .article-sources {
-    max-width: 680px;
+    max-width: 860px;
     margin: 40px auto 0;
     padding-top: 32px;
     border-top: 1px solid var(--article-border, #E8E8E8);
   }
 
   .article-related {
-    max-width: 680px;
+    max-width: 860px;
     margin: 56px auto 0;
     padding-top: 40px;
     border-top: 1px solid var(--article-border, #E8E8E8);
@@ -779,7 +770,7 @@ const faqSchema = data.faq.length
   }
 
   .article-cta {
-    max-width: 680px;
+    max-width: 860px;
     margin: 48px auto 0;
     text-align: center;
   }

@@ -1,9 +1,6 @@
-import { getCollection } from "astro:content";
+import { getCollection, type CollectionEntry } from "astro:content";
 import { absoluteUrl, supportedLocales, xDefaultPath, type LocaleKey } from "../config/site";
-import { blogContent, type BlogSlug } from "@site/data/locales";
 import { HUMAN_BLOG_SLUGS } from "@site/config/generated-blog-collision";
-
-const blogSlugs = Object.keys(blogContent.en) as BlogSlug[];
 
 const localePath = (l: LocaleKey, slug: string): string =>
   l === "en" ? `/blog/${slug}/` : `/${l}/blog/${slug}/`;
@@ -25,22 +22,6 @@ ${alternateLinks((alternate) => absoluteUrl(alternate.path), absoluteUrl(xDefaul
   )
   .join("\n");
 
-const blogUrls = blogSlugs
-  .map((slug) => {
-    const pathFor = (locale: LocaleKey) => (blogContent[locale] ?? blogContent.en)[slug].routePath;
-    const xDefaultHref = absoluteUrl(pathFor("en"));
-
-    return supportedLocales
-      .map(
-        (locale) => `  <url>
-    <loc>${absoluteUrl(pathFor(locale.key))}</loc>
-${alternateLinks((alternate) => absoluteUrl(pathFor(alternate.key)), xDefaultHref)}
-  </url>`,
-      )
-      .join("\n");
-  })
-  .join("\n");
-
 const standaloneUrls = ["/privacy/", "/cookies/"]
   .map(
     (path) => `  <url>
@@ -50,6 +31,39 @@ const standaloneUrls = ["/privacy/", "/cookies/"]
   .join("\n");
 
 export async function GET() {
+  const staticEntries = await getCollection("blogStatic");
+  const staticBySlug = new Map<string, CollectionEntry<"blogStatic">[]>();
+  for (const entry of staticEntries) {
+    const list = staticBySlug.get(entry.data.slug) ?? [];
+    list.push(entry);
+    staticBySlug.set(entry.data.slug, list);
+  }
+
+  const blogUrls = Array.from(staticBySlug.entries())
+    .map(([slug, entries]) => {
+      const byLocale = new Map<LocaleKey, CollectionEntry<"blogStatic">>();
+      for (const e of entries) byLocale.set(e.data.locale as LocaleKey, e);
+      const enEntry = byLocale.get("en");
+      const xDefaultHref = enEntry ? absoluteUrl(enEntry.data.routePath) : absoluteUrl(localePath("en", slug));
+
+      return supportedLocales
+        .map((locale) => {
+          const entry = byLocale.get(locale.key) ?? enEntry;
+          if (!entry) return null;
+          const loc = absoluteUrl(entry.data.routePath);
+          return `  <url>
+    <loc>${loc}</loc>
+${alternateLinks((alternate) => {
+              const alt = byLocale.get(alternate.key) ?? enEntry;
+              return alt ? absoluteUrl(alt.data.routePath) : xDefaultHref;
+            }, xDefaultHref)}
+  </url>`;
+        })
+        .filter((v): v is string => v !== null)
+        .join("\n");
+    })
+    .join("\n");
+
   const generatedEntries = await getCollection("blog");
   const generatedFiltered = generatedEntries.filter(
     (entry) => !HUMAN_BLOG_SLUGS.includes(entry.data.slug),
@@ -66,11 +80,8 @@ export async function GET() {
   for (const locale of supportedLocales) {
     existingRouteSet.add(absoluteUrl(locale.path));
   }
-  for (const slug of blogSlugs) {
-    for (const locale of supportedLocales) {
-      const routePath = (blogContent[locale.key] ?? blogContent.en)[slug].routePath;
-      existingRouteSet.add(absoluteUrl(routePath));
-    }
+  for (const entry of staticEntries) {
+    existingRouteSet.add(absoluteUrl(entry.data.routePath));
   }
 
   const generatedUrls = Array.from(groupToEntries.values())

@@ -73,6 +73,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install librsvg (for OG cover rasterization)
+        run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
+
       - name: Sync generated blog content
         id: sync
         env:
@@ -93,6 +96,11 @@ jobs:
           npx tsx landing-kit/src/scripts/assign-related-posts.ts \
             --managed-root "${{ inputs.managedContentRoot }}"
 
+      - name: Generate OG covers
+        run: |
+          node landing-kit/src/scripts/generate-cover.mjs --all \
+            --managed-root="${{ inputs.managedContentRoot }}"
+
       - name: Astro check
         run: npx astro check
 
@@ -105,10 +113,10 @@ jobs:
           set -eu
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Only the DB-managed content root is staged. Every other path
-          # (dynamic routes, brand copy, kit) is human-authored and must ship
-          # via a normal PR, not this workflow.
-          git add "$MANAGED_ROOT"
+          # DB-managed content root + auto-generated OG covers are the only
+          # bot-owned paths. Everything else (dynamic routes, brand copy, kit)
+          # is human-authored and must ship via a normal PR.
+          git add "$MANAGED_ROOT" public/assets/covers
           if git diff --cached --quiet; then
             echo "No content changes to commit."
             echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"

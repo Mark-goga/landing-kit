@@ -76,7 +76,41 @@ const FRONTMATTER_KEY_ORDER = [
 
 type Frontmatter = Record<string, unknown>;
 
-const selectHeroImage = async (post: BuildPost, managedRoot: string): Promise<BlogHeroImage | undefined> => {
+const collectHeroUsage = async (managedRoot: string): Promise<Map<BlogHeroImage, number>> => {
+  const usage = new Map<BlogHeroImage, number>(BLOG_HERO_IMAGES.map((h) => [h, 0]));
+  let localeDirs: string[];
+  try {
+    localeDirs = await fs.readdir(managedRoot);
+  } catch {
+    return usage;
+  }
+  for (const locale of localeDirs) {
+    const dir = path.join(managedRoot, locale);
+    let entries: string[];
+    try {
+      const stat = await fs.stat(dir);
+      if (!stat.isDirectory()) continue;
+      entries = await fs.readdir(dir);
+    } catch {
+      continue;
+    }
+    for (const name of entries) {
+      if (!name.endsWith(".md")) continue;
+      try {
+        const parsed = parseMarkdown(await fs.readFile(path.join(dir, name), "utf8"));
+        const hero = (parsed.data as Frontmatter | null)?.heroImage;
+        if (isBlogHeroImage(hero)) usage.set(hero, (usage.get(hero) ?? 0) + 1);
+      } catch { /* skip unreadable */ }
+    }
+  }
+  return usage;
+};
+
+const selectHeroImage = async (
+  post: BuildPost,
+  managedRoot: string,
+  usage: Map<BlogHeroImage, number>,
+): Promise<BlogHeroImage | undefined> => {
   if (post.pageType === "video_summary") return undefined;
 
   const existingPath = path.join(managedRoot, post.locale, `${post.slug}.md`);
@@ -90,7 +124,11 @@ const selectHeroImage = async (post: BuildPost, managedRoot: string): Promise<Bl
     if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") throw error;
   }
 
-  return BLOG_HERO_IMAGES[Math.floor(Math.random() * BLOG_HERO_IMAGES.length)];
+  const minCount = Math.min(...BLOG_HERO_IMAGES.map((h) => usage.get(h) ?? 0));
+  const candidates = BLOG_HERO_IMAGES.filter((h) => (usage.get(h) ?? 0) === minCount);
+  const picked = candidates[Math.floor(Math.random() * candidates.length)] ?? BLOG_HERO_IMAGES[0];
+  usage.set(picked, (usage.get(picked) ?? 0) + 1);
+  return picked;
 };
 
 const orderedFrontmatter = (post: BuildPost, heroImage?: BlogHeroImage): Frontmatter => {
@@ -208,6 +246,7 @@ const main = async (): Promise<void> => {
     includedInRebuild: boolean;
   };
   const written: WrittenPost[] = [];
+  const heroUsage = await collectHeroUsage(managedRoot);
   for (const post of posts) {
     const rel = path.join(post.locale, `${post.slug}.md`);
     const dest = path.join(tmpRoot, rel);
@@ -215,10 +254,7 @@ const main = async (): Promise<void> => {
       throw new Error(`Serialized path escaped managed root: ${dest}`);
     }
     await fs.mkdir(path.dirname(dest), { recursive: true });
-    // selectHeroImage reads the currently-published MDX (if any) and returns
-    // its heroImage — so previously-published posts keep their existing image
-    // even though the body/frontmatter are regenerated.
-    const heroImage = await selectHeroImage(post, managedRoot);
+    const heroImage = await selectHeroImage(post, managedRoot, heroUsage);
     const serialized = serializePost(post, heroImage);
     await fs.writeFile(dest, serialized, { encoding: "utf8" });
     parseMarkdown(serialized);

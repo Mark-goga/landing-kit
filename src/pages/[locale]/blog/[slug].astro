@@ -1,12 +1,20 @@
 ---
 import { getCollection, type CollectionEntry } from "astro:content";
 import GeneratedBlogArticleLayout from "../../../layouts/GeneratedBlogArticleLayout.astro";
+import BlogArticleLayout from "../../../layouts/BlogArticleLayout.astro";
 import { assertNoRouteCollision } from "../../../lib/blog-collision";
 import { HUMAN_BLOG_SLUGS } from "@site/config/generated-blog-collision";
 import type { LocaleKey } from "../../../config/site";
 
+type GeneratedProps = {
+  kind: "generated";
+  entry: CollectionEntry<"blog">;
+  translations: CollectionEntry<"blog">[];
+};
+type StaticProps = { kind: "static"; slug: string; locale: LocaleKey };
+type Props = GeneratedProps | StaticProps;
+
 export async function getStaticPaths() {
-  // getStaticPaths is serialized by Astro, so keep this value in its closure.
   const nonEnglishLocales: LocaleKey[] = ["uk", "es", "de"];
   const all = await getCollection("blog");
   const localized = all.filter((entry: CollectionEntry<"blog">) =>
@@ -32,21 +40,37 @@ export async function getStaticPaths() {
     byGroup.set(e.data.translationGroupId, list);
   }
 
-  return nonColliding.map((entry: CollectionEntry<"blog">) => ({
+  const generatedPaths = nonColliding.map((entry: CollectionEntry<"blog">) => ({
     params: { locale: entry.data.locale, slug: entry.data.slug },
     props: {
+      kind: "generated" as const,
       entry,
       translations: (byGroup.get(entry.data.translationGroupId) ?? []).filter(
         (t: CollectionEntry<"blog">) => t.id !== entry.id,
       ),
-    },
+    } satisfies GeneratedProps,
   }));
+
+  const staticEntries = await getCollection("blogStatic");
+  const staticPaths = staticEntries
+    .filter((e: CollectionEntry<"blogStatic">) =>
+      nonEnglishLocales.includes(e.data.locale as LocaleKey),
+    )
+    .map((e: CollectionEntry<"blogStatic">) => ({
+      params: { locale: e.data.locale, slug: e.data.slug },
+      props: {
+        kind: "static" as const,
+        slug: e.data.slug,
+        locale: e.data.locale as LocaleKey,
+      } satisfies StaticProps,
+    }));
+
+  return [...generatedPaths, ...staticPaths];
 }
 
-const { entry, translations } = Astro.props as {
-  entry: CollectionEntry<"blog">;
-  translations: CollectionEntry<"blog">[];
-};
+const props = Astro.props as Props;
 ---
 
-<GeneratedBlogArticleLayout entry={entry} translations={translations} />
+{props.kind === "generated"
+  ? <GeneratedBlogArticleLayout entry={props.entry} translations={props.translations} />
+  : <BlogArticleLayout slug={props.slug} locale={props.locale} />}

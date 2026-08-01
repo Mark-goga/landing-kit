@@ -1,8 +1,17 @@
 ---
 import { getCollection, type CollectionEntry } from "astro:content";
 import GeneratedBlogArticleLayout from "../../layouts/GeneratedBlogArticleLayout.astro";
+import BlogArticleLayout from "../../layouts/BlogArticleLayout.astro";
 import { assertNoRouteCollision } from "../../lib/blog-collision";
 import { HUMAN_BLOG_SLUGS } from "@site/config/generated-blog-collision";
+
+type GeneratedProps = {
+  kind: "generated";
+  entry: CollectionEntry<"blog">;
+  translations: CollectionEntry<"blog">[];
+};
+type StaticProps = { kind: "static"; slug: string };
+type Props = GeneratedProps | StaticProps;
 
 export async function getStaticPaths() {
   const all = await getCollection("blog");
@@ -27,21 +36,31 @@ export async function getStaticPaths() {
     byGroup.set(e.data.translationGroupId, list);
   }
 
-  return nonColliding.map((entry: CollectionEntry<"blog">) => ({
+  const generatedPaths = nonColliding.map((entry: CollectionEntry<"blog">) => ({
     params: { slug: entry.data.slug },
     props: {
+      kind: "generated" as const,
       entry,
       translations: (byGroup.get(entry.data.translationGroupId) ?? []).filter(
         (t: CollectionEntry<"blog">) => t.id !== entry.id,
       ),
-    },
+    } satisfies GeneratedProps,
   }));
+
+  const staticEntries = await getCollection("blogStatic");
+  const staticPaths = staticEntries
+    .filter((e: CollectionEntry<"blogStatic">) => e.data.locale === "en")
+    .map((e: CollectionEntry<"blogStatic">) => ({
+      params: { slug: e.data.slug },
+      props: { kind: "static" as const, slug: e.data.slug } satisfies StaticProps,
+    }));
+
+  return [...generatedPaths, ...staticPaths];
 }
 
-const { entry, translations } = Astro.props as {
-  entry: CollectionEntry<"blog">;
-  translations: CollectionEntry<"blog">[];
-};
+const props = Astro.props as Props;
 ---
 
-<GeneratedBlogArticleLayout entry={entry} translations={translations} />
+{props.kind === "generated"
+  ? <GeneratedBlogArticleLayout entry={props.entry} translations={props.translations} />
+  : <BlogArticleLayout slug={props.slug} locale="en" />}
