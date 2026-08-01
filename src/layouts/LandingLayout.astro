@@ -18,14 +18,99 @@ const heroImagePath = pageAssetUrl(routePath, siteConfig.heroImagePath);
 const scriptPath = pageAssetUrl(routePath, siteConfig.scriptPath);
 const favicon = pageAssetUrl(routePath, "assets/favicon.png");
 const faviconDark = pageAssetUrl(routePath, "assets/favicon-dark.png");
+const structured = content.structuredData;
+const searchAction = structured.searchUrlTemplate
+  ? {
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: absoluteUrl(structured.searchUrlTemplate),
+        },
+        "query-input": "required name=search_term_string",
+      },
+    }
+  : {};
+
 const websiteJson = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: siteConfig.name,
-  description: content.structuredData.description,
+  description: structured.description,
   url: canonicalUrl,
   inLanguage: content.lang,
+  ...searchAction,
 };
+
+const organizationJson = structured.organization
+  ? {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: siteConfig.name,
+      url: absoluteUrl("/"),
+      logo: absoluteUrl(structured.organization.logoPath),
+      ...(structured.organization.sameAs?.length
+        ? { sameAs: structured.organization.sameAs }
+        : {}),
+      ...(structured.organization.contactEmail
+        ? {
+            contactPoint: {
+              "@type": "ContactPoint",
+              email: structured.organization.contactEmail,
+              contactType: "customer support",
+            },
+          }
+        : {}),
+    }
+  : null;
+
+const softwareJson = structured.software
+  ? {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: siteConfig.name,
+      description: structured.description,
+      url: canonicalUrl,
+      inLanguage: content.lang,
+      applicationCategory: structured.software.category,
+      operatingSystem: structured.software.operatingSystem,
+      ...(structured.software.offers?.length
+        ? {
+            offers: structured.software.offers.map((offer) => ({
+              "@type": "Offer",
+              name: offer.name,
+              price: offer.price,
+              priceCurrency: offer.priceCurrency,
+              ...(offer.description ? { description: offer.description } : {}),
+            })),
+          }
+        : {}),
+      ...(structured.software.aggregateRating
+        ? {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: structured.software.aggregateRating.ratingValue,
+              ratingCount: structured.software.aggregateRating.ratingCount,
+            },
+          }
+        : {}),
+    }
+  : null;
+
+const faqJson = content.faq?.items?.length
+  ? {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: content.faq.items.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
+    }
+  : null;
 ---
 
 <!doctype html>
@@ -64,6 +149,10 @@ const websiteJson = {
     <meta property="og:description" content={content.meta.ogDescription} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={heroImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:alt" content={content.hero.imageAlt} />
     <meta property="og:locale" content={content.ogLocale} />
     <meta property="og:locale:alternate" content={content.ogLocaleAlternate} />
     <meta name="twitter:card" content="summary_large_image" />
@@ -72,6 +161,15 @@ const websiteJson = {
     <meta name="twitter:image" content={heroImageUrl} />
 
     <script type="application/ld+json" set:html={JSON.stringify(websiteJson)}></script>
+    {organizationJson && (
+      <script type="application/ld+json" set:html={JSON.stringify(organizationJson)}></script>
+    )}
+    {softwareJson && (
+      <script type="application/ld+json" set:html={JSON.stringify(softwareJson)}></script>
+    )}
+    {faqJson && (
+      <script type="application/ld+json" set:html={JSON.stringify(faqJson)}></script>
+    )}
   </head>
   <body>
     <slot />

@@ -149,7 +149,7 @@ export async function GET() {
   );
 
   const generatedFreshness = (data: CollectionEntry<"blog">["data"]): { display: string; key: string } => {
-    const raw = data.modifiedAt ?? data.updatedAt ?? data.createdAt;
+    const raw = data.modifiedAt ?? data.createdAt;
     return normalizeDateInput(raw);
   };
 

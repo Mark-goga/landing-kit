@@ -24,18 +24,24 @@ const frontmatterOverrides = {
   featured: z.boolean().default(false),
 };
 
+// Landing frontmatter contract is a subset of the export contract:
+// - bodyMdx: written to the body of the .md file, not frontmatter
+// - includedInRebuild: internal signal, not persisted
+// - updatedAt: sync-blog-content.ts persists it as `modifiedAt` instead — no
+//   raw `updatedAt` field in landing frontmatter, so omitting keeps schema
+//   aligned with what's actually on disk
+const frontmatterOmit = {
+  bodyMdx: true,
+  includedInRebuild: true,
+  updatedAt: true,
+} as const;
+
 export const blogPostSchema = z.discriminatedUnion("pageType", [
-  howTo.omit({ bodyMdx: true, includedInRebuild: true }).extend(frontmatterOverrides),
-  comparison
-    .omit({ bodyMdx: true, includedInRebuild: true })
-    .extend(frontmatterOverrides),
-  concept.omit({ bodyMdx: true, includedInRebuild: true }).extend(frontmatterOverrides),
-  videoSummary
-    .omit({ bodyMdx: true, includedInRebuild: true })
-    .extend(frontmatterOverrides),
-  template
-    .omit({ bodyMdx: true, includedInRebuild: true })
-    .extend(frontmatterOverrides),
+  howTo.omit(frontmatterOmit).extend(frontmatterOverrides),
+  comparison.omit(frontmatterOmit).extend(frontmatterOverrides),
+  concept.omit(frontmatterOmit).extend(frontmatterOverrides),
+  videoSummary.omit(frontmatterOmit).extend(frontmatterOverrides),
+  template.omit(frontmatterOmit).extend(frontmatterOverrides),
 ]);
 
 const blog = defineCollection({

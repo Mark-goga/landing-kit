@@ -113,7 +113,7 @@ export async function getBlogCards(locale: LocaleKey): Promise<BlogCard[]> {
         CATEGORY_BY_PAGETYPE[data.pageType] ??
         "",
       publishedAt: data.createdAt,
-      freshnessAt: data.modifiedAt ?? data.updatedAt ?? data.createdAt,
+      freshnessAt: data.modifiedAt ?? data.createdAt,
       publishedDisplay: formatDate(data.createdAt, locale),
       readTime: estimateReadTime(locale),
       heroImage: data.heroImage,
