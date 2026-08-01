@@ -211,6 +211,21 @@ const listMarkdownFiles = async (root: string): Promise<string[]> => {
   return files;
 };
 
+const wouldCreateCycle = (
+  graph: Map<string, Set<string>>,
+  source: string,
+  target: string,
+): boolean => {
+  const visited = new Set<string>();
+  const visit = (node: string): boolean => {
+    if (node === source) return true;
+    if (visited.has(node)) return false;
+    visited.add(node);
+    return [...(graph.get(node) ?? [])].some(visit);
+  };
+  return visit(target);
+};
+
 const assignRelatedPosts = (articles: Article[]): Map<string, RelatedPost[]> => {
   const sorted = [...articles].sort((a, b) => a.key.localeCompare(b.key));
   const graph = new Map(sorted.map((article) => [article.key, new Set<string>()]));
@@ -228,7 +243,10 @@ const assignRelatedPosts = (articles: Article[]): Map<string, RelatedPost[]> => 
     for (let slot = 0; slot < MAX_RELATED_POSTS; slot++) {
       const selectedKeys = graph.get(article.key) ?? new Set<string>();
       const candidate = candidates
-        .filter((item) => !selectedKeys.has(item.key))
+        .filter(
+          (item) =>
+            !selectedKeys.has(item.key) && !wouldCreateCycle(graph, article.key, item.key),
+        )
         .sort((left, right) => {
           const leftScore = relevance(article, left) * 10 - (inbound.get(left.key) ?? 0) * 3;
           const rightScore = relevance(article, right) * 10 - (inbound.get(right.key) ?? 0) * 3;

@@ -1,0 +1,530 @@
+---
+import Breadcrumb, { type BreadcrumbItem } from "./Breadcrumb.astro";
+import type { BlogCard } from "../lib/blog-list";
+import { brandTokens } from "@site/config/brand";
+
+const accent = brandTokens.themeColor;
+// Derive a low-opacity tint for focus rings + tag chips without dragging
+// rgba/hsl helpers into the kit runtime. RGB channels are parsed from the
+// #RRGGBB brand token; #RGB shorthand is not supported by design tokens.
+const accentTint = (() => {
+  const m = accent.match(/^#([0-9a-f]{6})$/i);
+  if (!m) return "rgba(76, 39, 227, 0.12)";
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+  return `rgba(${r}, ${g}, ${b}, 0.12)`;
+})();
+
+export interface BlogIndexStrings {
+  title: string;
+  subtitle: string;
+  breadcrumbHome: string;
+  breadcrumbBlog: string;
+  searchPlaceholder: string;
+  searchAriaLabel: string;
+  featuredTag: string;
+  articleSingular: string;
+  articlePlural: string;
+  countSuffix: string; // "articles" plural fallback in aria-live
+  matchedFor: string; // e.g. "for" → 'for "spaced"'
+  readMoreLabel: string;
+  emptyTitle: string;
+  emptyBody: string;
+  emptyClear: string;
+}
+
+interface Props {
+  cards: BlogCard[];
+  strings: BlogIndexStrings;
+  homeHref: string; // "/", "/uk/", etc
+  blogHref: string; // "/blog", "/uk/blog", etc
+  locale: string;
+}
+
+const { cards, strings, homeHref, blogHref, locale } = Astro.props;
+
+const [featured, ...rest] = cards;
+
+const breadcrumbItems: BreadcrumbItem[] = [
+  { label: strings.breadcrumbHome, href: homeHref },
+  { label: strings.breadcrumbBlog },
+];
+---
+
+<section class="blog-hub" lang={locale}>
+  <div class="blog-wrap">
+    <div class="blog-head">
+      <Breadcrumb items={breadcrumbItems} ariaLabel={strings.breadcrumbBlog} />
+      <h1 class="blog-title">{strings.title}</h1>
+      <p class="blog-sub">{strings.subtitle}</p>
+
+      <div class="blog-controls">
+        <label class="blog-search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            id="blog-search-input"
+            type="search"
+            placeholder={strings.searchPlaceholder}
+            autocomplete="off"
+            aria-label={strings.searchAriaLabel}
+            aria-controls="blog-grid blog-featured"
+          />
+        </label>
+        <p class="blog-meta-count" id="blog-meta" aria-live="polite"></p>
+      </div>
+    </div>
+
+    {featured && (
+      <a
+        class="blog-featured"
+        id="blog-featured"
+        href={featured.href}
+        data-title={featured.title}
+        data-desc={featured.description}
+      >
+        <div
+          class="blog-featured-media"
+          style={featured.heroImage ? `background-image:url('${featured.heroImage}')` : ""}
+          aria-hidden="true"
+        ></div>
+        <div class="blog-featured-body">
+          <span class="blog-tag blog-featured-tag">
+            <span class="blog-featured-star" aria-hidden="true">✦</span>
+            <span>{strings.featuredTag}</span>
+            {featured.category && <><span aria-hidden="true">·</span> <span>{featured.category}</span></>}
+          </span>
+          <h2 class="blog-featured-title" data-blog-highlight>{featured.title}</h2>
+          <p class="blog-featured-desc" data-blog-highlight>{featured.description}</p>
+          <div class="blog-meta-row">
+            <time datetime={featured.publishedAt}>{featured.publishedDisplay}</time>
+            {featured.readTime && <><span aria-hidden="true">·</span><span>{featured.readTime}</span></>}
+          </div>
+          <span class="blog-read-more">{strings.readMoreLabel} <span aria-hidden="true">→</span></span>
+        </div>
+      </a>
+    )}
+
+    <section class="blog-grid" id="blog-grid" aria-live="polite">
+      {rest.map((card) => (
+        <article
+          class="blog-card"
+          data-title={card.title}
+          data-desc={card.description}
+        >
+          <a class="blog-card-media" href={card.href} aria-label={card.title}
+             style={card.heroImage ? `background-image:url('${card.heroImage}')` : ""}></a>
+          <div class="blog-card-body">
+            {card.category && <span class="blog-tag">{card.category}</span>}
+            <h3 class="blog-card-title">
+              <a href={card.href} data-blog-highlight>{card.title}</a>
+            </h3>
+            <p class="blog-card-desc" data-blog-highlight>{card.description}</p>
+            <div class="blog-meta-row">
+              <time datetime={card.publishedAt}>{card.publishedDisplay}</time>
+              {card.readTime && <><span aria-hidden="true">·</span><span>{card.readTime}</span></>}
+            </div>
+          </div>
+        </article>
+      ))}
+    </section>
+
+    <div class="blog-empty" id="blog-empty" hidden>
+      <div class="blog-empty-ic" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+      </div>
+      <h3>{strings.emptyTitle}</h3>
+      <p>{strings.emptyBody}</p>
+      <button type="button" id="blog-clear">{strings.emptyClear}</button>
+    </div>
+  </div>
+</section>
+
+<script
+  is:inline
+  define:vars={{
+    strings: {
+      one: strings.articleSingular,
+      many: strings.articlePlural,
+      matchedFor: strings.matchedFor,
+    },
+  }}
+>
+  (function () {
+    const input = document.getElementById("blog-search-input");
+    if (!input) return;
+    const grid = document.getElementById("blog-grid");
+    const featured = document.getElementById("blog-featured");
+    const empty = document.getElementById("blog-empty");
+    const meta = document.getElementById("blog-meta");
+    const clearBtn = document.getElementById("blog-clear");
+
+    const cards = Array.from(document.querySelectorAll(".blog-card"));
+    const allItems = featured ? [featured, ...cards] : cards.slice();
+
+    const originals = new WeakMap();
+    document.querySelectorAll("[data-blog-highlight]").forEach((el) => {
+      originals.set(el, el.textContent || "");
+    });
+
+    const escapeHtml = (s) =>
+      s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    const escapeReg = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const highlight = (el, term) => {
+      const original = originals.get(el) ?? el.textContent ?? "";
+      if (!term) {
+        el.textContent = original;
+        return;
+      }
+      const re = new RegExp(escapeReg(term), "ig");
+      el.innerHTML = escapeHtml(original).replace(re, (m) => `<mark>${escapeHtml(m)}</mark>`);
+    };
+
+    const norm = (s) => (s || "").toLowerCase().trim();
+
+    const apply = (rawTerm) => {
+      const term = norm(rawTerm);
+      let shown = 0;
+      allItems.forEach((el) => {
+        const hay = norm((el.dataset.title || "") + " " + (el.dataset.desc || ""));
+        const ok = !term || hay.indexOf(term) > -1;
+        el.style.display = ok ? "" : "none";
+        if (ok) shown++;
+        el.querySelectorAll("[data-blog-highlight]").forEach((n) => highlight(n, term));
+      });
+      if (empty) empty.hidden = shown !== 0;
+      if (meta) {
+        if (!term) {
+          meta.textContent = "";
+        } else {
+          const label = shown === 1 ? strings.one : strings.many;
+          meta.textContent = shown + " " + label + " " + strings.matchedFor + ' "' + rawTerm.trim() + '"';
+        }
+      }
+    };
+
+    let t;
+    input.addEventListener("input", (e) => {
+      clearTimeout(t);
+      const v = e.target.value;
+      t = setTimeout(() => apply(v), 180);
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        input.value = "";
+        apply("");
+        input.focus();
+      });
+    }
+  })();
+</script>
+
+<style define:vars={{ accent, accentTint }}>
+  .blog-hub {
+    --ink: #16151a;
+    --muted: #6b6975;
+    --line: #ececf2;
+    --bg: transparent;
+    --bg-soft: #fbfafd;
+    --accent: var(--accent);
+    --accent-tint: var(--accentTint);
+    --radius-card: 16px;
+    --radius-input: 12px;
+    --shadow-lift: 0 4px 10px rgba(76, 39, 227, 0.08), 0 18px 44px rgba(76, 39, 227, 0.12);
+    --maxw: 1120px;
+    color: var(--ink);
+    background: var(--bg);
+    font-family: "Roboto Flex", system-ui, -apple-system, sans-serif;
+    font-variation-settings: "opsz" 20;
+    padding-bottom: 96px;
+  }
+  .blog-wrap {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .blog-head {
+    padding: 56px 0 8px;
+  }
+  .blog-title {
+    font-size: clamp(38px, 6vw, 60px);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    margin: 18px 0 14px;
+    font-weight: 800;
+    font-variation-settings: "opsz" 100;
+  }
+  .blog-sub {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 56ch;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  .blog-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 34px 0 12px;
+  }
+  .blog-search {
+    position: relative;
+    max-width: 460px;
+  }
+  .blog-search svg {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+  }
+  .blog-search input {
+    width: 100%;
+    height: 50px;
+    padding: 0 16px 0 46px;
+    font: inherit;
+    font-size: 16px;
+    border: 1px solid #c7c5cf;
+    border-radius: var(--radius-input);
+    background: #fff;
+    color: var(--ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .blog-search input::placeholder {
+    color: #777584;
+  }
+  .blog-search input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 4px var(--accent-tint);
+  }
+  .blog-meta-count {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    min-height: 1.2em;
+  }
+
+  .blog-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--accent-tint);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    width: max-content;
+  }
+
+  /* ── Featured ─────────────────────────────────────────────── */
+  .blog-featured {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 40px;
+    margin: 40px 0 56px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: var(--bg-soft);
+    color: inherit;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .blog-featured:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift);
+    border-color: transparent;
+  }
+  .blog-featured-media {
+    aspect-ratio: 4 / 3;
+    border-radius: 16px;
+    background: #d6d3e6 center / cover no-repeat;
+    min-height: 320px;
+  }
+  .blog-featured-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 8px 8px;
+  }
+  .blog-featured-tag {
+    background: transparent;
+    padding: 0;
+    text-transform: none;
+    font-size: 13px;
+    letter-spacing: 0;
+    gap: 8px;
+    align-items: baseline;
+  }
+  .blog-featured-star {
+    color: var(--accent);
+    font-size: 14px;
+  }
+  .blog-featured-title {
+    font-size: clamp(26px, 3vw, 34px);
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    margin: 0;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .blog-featured-desc {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+    font-size: 16px;
+  }
+  .blog-read-more {
+    margin-top: auto;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── Grid ─────────────────────────────────────────────────── */
+  .blog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 28px;
+  }
+  .blog-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    border-radius: var(--radius-card);
+    background: var(--bg);
+    padding: 12px;
+    border: 1px solid transparent;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .blog-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--line);
+    box-shadow: 0 8px 24px rgba(20, 18, 45, 0.06);
+  }
+  .blog-card-media {
+    display: block;
+    aspect-ratio: 16 / 10;
+    border-radius: 12px;
+    background: #ececf2 center / cover no-repeat;
+  }
+  .blog-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 6px 8px;
+  }
+  .blog-card-title {
+    font-size: 19px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 2px 0 0;
+    font-weight: 700;
+  }
+  .blog-card-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .blog-card-title a:hover {
+    color: var(--accent);
+  }
+  .blog-card-desc {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .blog-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* highlight */
+  :global(.blog-hub mark) {
+    background: var(--accent-tint);
+    color: var(--ink);
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+
+  /* ── Empty ────────────────────────────────────────────────── */
+  .blog-empty {
+    text-align: center;
+    padding: 60px 24px;
+    border: 1px dashed var(--line);
+    border-radius: var(--radius-card);
+    margin-top: 32px;
+    color: var(--muted);
+  }
+  .blog-empty h3 {
+    color: var(--ink);
+    margin: 12px 0 6px;
+    font-size: 20px;
+  }
+  .blog-empty p {
+    margin: 0 0 18px;
+  }
+  .blog-empty-ic {
+    color: var(--accent);
+  }
+  .blog-empty button {
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .blog-empty button:hover {
+    box-shadow: var(--shadow-lift);
+  }
+  .blog-empty button:active {
+    transform: translateY(1px);
+  }
+
+  /* ── Tablet ───────────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .blog-featured {
+      grid-template-columns: 1fr;
+    }
+    .blog-featured-media {
+      min-height: 220px;
+    }
+  }
+
+  /* ── Mobile ───────────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    .blog-head {
+      padding: 32px 0 4px;
+    }
+    .blog-grid {
+      grid-template-columns: 1fr;
+    }
+    .blog-featured {
+      padding: 12px;
+      margin: 28px 0 40px;
+    }
+  }
+</style>

@@ -16,6 +16,10 @@ const frontmatterOverrides = {
   heroImage: z.string().regex(HERO_IMAGE_ANY_RE).optional(),
   // Landing-owned internal-link graph, assigned by scripts/assign-related-posts.ts.
   relatedPosts: z.array(relatedPostSchema).max(3).default([]),
+  // Editor-controlled hero pick on /blog. When true, promotes the post into the
+  // featured slot regardless of publish date. At most one per locale should be
+  // marked featured; ties break by publish date.
+  featured: z.boolean().default(false),
 };
 
 export const blogPostSchema = z.discriminatedUnion("pageType", [
@@ -75,6 +79,8 @@ export const blogStaticSchema = z.object({
     .array(z.object({ question: z.string(), answer: z.string() }))
     .default([]),
   relatedPosts: z.array(relatedPostSchema).max(3).default([]),
+  // Editor-controlled hero pick on /blog. See generated-post override above.
+  featured: z.boolean().default(false),
 });
 
 const blogStatic = defineCollection({

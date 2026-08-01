@@ -6,6 +6,8 @@ import Footer from "../components/Footer.astro";
 import Modal from "../components/Modal.astro";
 import FaqAccordion from "../components/FaqAccordion.astro";
 import KeepReading from "../components/KeepReading.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import TableOfContents from "../components/TableOfContents.astro";
 import { siteConfig, absoluteUrl, supportedLocales, type LocaleKey } from "../config/site";
 import { brandTokens } from "@site/config/brand";
 import { landingContent, localeMeta, type LanguageOption } from "@site/data/locales";
@@ -66,7 +68,7 @@ if (englishSlug) {
   });
 }
 
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
 
 const getYouTubeEmbedUrl = (videoUrl: string): string | null => {
   try {
@@ -143,13 +145,27 @@ const faqSchema = data.faq.length
   alternates={alternates}
   openGraphType="article"
   openGraphImage={ogCoverPath}
+  surface="muted"
 >
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
   {faqSchema && <script slot="head" type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
   <Header content={content} routePath={routePath} languageNav={languageNav} />
 
   <main class="article-page">
-    <article class="article">
+    <TableOfContents headings={headings} label={content.blog.ui.tableOfContents} />
+    <div class="article-breadcrumb">
+      <div class="article-breadcrumb-inner">
+      <Breadcrumb
+        items={[
+          { label: content.blog.ui.breadcrumbHome, href: content.path },
+          { label: content.blog.ui.breadcrumbBlog, href: locale === "en" ? "/blog/" : `/${locale}/blog/` },
+          { label: data.title },
+        ]}
+        truncateLast={70}
+      />
+      </div>
+    </div>
+    <article id="article-top" class="article">
       <div class="article-header">
         <p class="article-category">Knowledge Hub</p>
         <h1 class="article-title">{data.title}</h1>
@@ -392,14 +408,24 @@ const faqSchema = data.faq.length
 <style>
   .article-page {
     padding-top: 80px;
-    background: var(--article-bg, #F3F3F3);
+    background: transparent;
     min-height: 100vh;
   }
 
   .article {
     max-width: 1192px;
     margin: 0 auto;
-    padding: 60px 24px 100px;
+    padding: 40px 24px 100px;
+  }
+
+  .article-breadcrumb {
+    padding: 32px 24px 0;
+  }
+
+  .article-breadcrumb-inner {
+    /* Breadcrumb starts on the same reading axis as the article title. */
+    max-width: 860px;
+    margin: 0 auto;
   }
 
   .article-header {
@@ -773,5 +799,15 @@ const faqSchema = data.faq.length
     max-width: 860px;
     margin: 48px auto 0;
     text-align: center;
+  }
+
+  @media (max-width: 768px) {
+    .article-breadcrumb {
+      padding: 24px 20px 0;
+    }
+
+    .article {
+      padding: 32px 20px 80px;
+    }
   }
 </style>

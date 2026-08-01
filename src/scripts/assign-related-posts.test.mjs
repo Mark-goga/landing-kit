@@ -9,10 +9,11 @@ import YAML from "yaml";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT_PATH = path.join(__dirname, "assign-related-posts.ts");
+const TSCONFIG_PATH = path.resolve(__dirname, "../../../tsconfig.json");
 
 const runScript = ({ cwd, root }) =>
   new Promise((resolve) => {
-    const child = spawn("npx", ["tsx", SCRIPT_PATH, "--managed-root", root], {
+    const child = spawn("npx", ["tsx", "--tsconfig", TSCONFIG_PATH, SCRIPT_PATH, "--managed-root", root], {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
     });

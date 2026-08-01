@@ -16,6 +16,7 @@ interface Props {
   alternates?: { hreflang: string; href: string }[];
   openGraphType?: "website" | "article";
   openGraphImage?: string;
+  surface?: "default" | "muted";
 }
 
 const {
@@ -29,6 +30,7 @@ const {
   alternates = [],
   openGraphType = "website",
   openGraphImage,
+  surface = "default",
 } = Astro.props;
 const canonicalUrl = absoluteUrl(canonicalPath);
 const openGraphImageUrl = openGraphImage ? absoluteUrl(openGraphImage) : undefined;
@@ -73,8 +75,33 @@ const faviconDark = pageAssetUrl(routePath, brandTokens.faviconDarkPath);
     {alternates.map((alternate) => <link rel="alternate" hreflang={alternate.hreflang} href={alternate.href} />)}
     <slot name="head" />
   </head>
-  <body>
+  <body class:list={{ "page-surface--muted": surface === "muted" }}>
     <slot />
     <script src={scriptPath} defer></script>
   </body>
 </html>
+
+<style is:global>
+  body.page-surface--muted {
+    background: var(--article-bg, #F3F3F3);
+  }
+
+  a,
+  button,
+  input,
+  textarea,
+  select {
+    transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+
+</style>

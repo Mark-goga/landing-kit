@@ -6,6 +6,8 @@ import Footer from "../components/Footer.astro";
 import Modal from "../components/Modal.astro";
 import FaqAccordion from "../components/FaqAccordion.astro";
 import KeepReading from "../components/KeepReading.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import TableOfContents from "../components/TableOfContents.astro";
 import { siteConfig, pageAssetUrl, absoluteUrl, supportedLocales, type LocaleKey } from "../config/site";
 import { landingContent, localeMeta, type LanguageOption } from "@site/data/locales";
 
@@ -22,7 +24,7 @@ if (!entry) {
 }
 
 const article = entry.data;
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
 const authorObj = article.author;
 const authorName = authorObj.name;
 const authorBioEntry = authorObj.bio.find((b) => b.locale === locale) ?? authorObj.bio.find((b) => b.locale === "en");
@@ -102,12 +104,26 @@ const articleSchema = {
   alternates={alternates}
   openGraphType="article"
   openGraphImage={ogCoverPath}
+  surface="muted"
 >
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
   <Header content={content} routePath={routePath} languageNav={languageNav} />
 
   <main class="article-page">
-    <article class="article">
+    <TableOfContents headings={headings} label={content.blog.ui.tableOfContents} />
+    <div class="article-breadcrumb">
+      <div class="article-breadcrumb-inner">
+      <Breadcrumb
+        items={[
+          { label: content.blog.ui.breadcrumbHome, href: content.path },
+          { label: content.blog.ui.breadcrumbBlog, href: locale === "en" ? "/blog/" : `/${locale}/blog/` },
+          { label: article.title },
+        ]}
+        truncateLast={70}
+      />
+      </div>
+    </div>
+    <article id="article-top" class="article">
       <div class="article-header">
         <p class="article-category">{article.category}</p>
         <h1 class="article-title">{article.title}</h1>
@@ -290,14 +306,24 @@ const articleSchema = {
 <style>
   .article-page {
     padding-top: 80px;
-    background: var(--article-bg, #F3F3F3);
+    background: transparent;
     min-height: 100vh;
   }
 
   .article {
     max-width: 1192px;
     margin: 0 auto;
-    padding: 60px 24px 100px;
+    padding: 40px 24px 100px;
+  }
+
+  .article-breadcrumb {
+    padding: 32px 24px 0;
+  }
+
+  .article-breadcrumb-inner {
+    /* Breadcrumb starts on the same reading axis as the article title. */
+    max-width: 860px;
+    margin: 0 auto;
   }
 
   /* Header */
@@ -560,8 +586,12 @@ const articleSchema = {
   }
 
   @media (max-width: 768px) {
+    .article-breadcrumb {
+      padding: 24px 20px 0;
+    }
+
     .article {
-      padding: 40px 20px 80px;
+      padding: 32px 20px 80px;
     }
 
     .article-title {

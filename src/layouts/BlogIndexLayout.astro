@@ -1,0 +1,89 @@
+---
+import PageLayout from "./PageLayout.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import BlogIndex from "../components/BlogIndex.astro";
+import { getBlogCards } from "../lib/blog-list";
+import { absoluteUrl, siteConfig, supportedLocales, type LocaleKey } from "../config/site";
+import { landingContent, localeMeta, type LanguageOption } from "@site/data/locales";
+
+interface Props {
+  locale: LocaleKey;
+}
+
+const { locale } = Astro.props;
+
+const content = landingContent[locale];
+const blogStrings = content.blog;
+
+const routePath = locale === "en" ? "/blog/" : `/${locale}/blog/`;
+const homeHref = locale === "en" ? "/" : `/${locale}/`;
+
+const cards = await getBlogCards(locale);
+
+const localeHasCards = new Set<LocaleKey>();
+// Build language switcher only for locales that actually have any post — keeps
+// the switcher honest (mirrors article-layout behavior).
+await Promise.all(
+  supportedLocales.map(async (opt) => {
+    const list = await getBlogCards(opt.key);
+    if (list.length > 0) localeHasCards.add(opt.key);
+  }),
+);
+localeHasCards.add(locale);
+
+const languageNav: LanguageOption[] = supportedLocales
+  .filter((opt) => localeHasCards.has(opt.key))
+  .map((opt) => ({
+    locale: opt.key,
+    code: localeMeta[opt.key].code,
+    name: localeMeta[opt.key].name,
+    href: opt.key === "en" ? "/blog/" : `/${opt.key}/blog/`,
+  }));
+
+const alternates: { hreflang: string; href: string }[] = supportedLocales
+  .filter((opt) => localeHasCards.has(opt.key))
+  .map((opt) => ({
+    hreflang: opt.hreflang as string,
+    href: absoluteUrl(opt.key === "en" ? "/blog/" : `/${opt.key}/blog/`),
+  }));
+alternates.push({ hreflang: "x-default", href: absoluteUrl("/blog/") });
+
+const blogSchema = {
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  name: `${siteConfig.name} Blog`,
+  url: absoluteUrl(routePath),
+  description: blogStrings.subtitle,
+  publisher: {
+    "@type": "Organization",
+    name: siteConfig.name,
+    url: absoluteUrl("/"),
+  },
+};
+---
+
+<PageLayout
+  title={blogStrings.metaTitle}
+  description={blogStrings.metaDescription}
+  canonicalPath={routePath}
+  routePath={routePath}
+  lang={locale}
+  alternates={alternates}
+  surface="muted"
+>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(blogSchema)} />
+  <Header content={content} routePath={routePath} languageNav={languageNav} />
+
+  <main class="blog-index-page">
+    <BlogIndex
+      cards={cards}
+      strings={blogStrings.ui}
+      homeHref={homeHref}
+      blogHref={routePath}
+      locale={locale}
+    />
+  </main>
+
+  <Footer content={content} routePath={routePath} />
+</PageLayout>

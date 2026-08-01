@@ -1,0 +1,19 @@
+---
+import BlogIndexLayout from "../../../layouts/BlogIndexLayout.astro";
+import type { LocaleKey } from "../../../config/site";
+
+export async function getStaticPaths() {
+  const nonEnglishLocales: LocaleKey[] = ["uk", "es", "de"];
+  return nonEnglishLocales.map((locale) => ({
+    params: { locale },
+    props: { locale },
+  }));
+}
+
+interface Props {
+  locale: LocaleKey;
+}
+
+const { locale } = Astro.props;
+---
+<BlogIndexLayout locale={locale} />

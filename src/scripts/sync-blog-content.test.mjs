@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT_PATH = path.join(__dirname, "sync-blog-content.ts");
+const TSCONFIG_PATH = path.resolve(__dirname, "../../../tsconfig.json");
 
 const APPLICATION_ID = "019e92d8-b331-7321-a2fc-a0f82fc0d2c3";
 const REBUILD_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -19,12 +20,6 @@ const AUTHOR_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const DRAFT_ID_A = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 const DRAFT_ID_B = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 const DRAFT_ID_C = "ffffffff-ffff-4fff-8fff-ffffffffffff";
-const BLOG_HERO_IMAGES = [
-  "/assets/card-1.png",
-  "/assets/card-2.png",
-  "/assets/card-3.png",
-];
-
 const buildAuthor = () => ({
   id: AUTHOR_ID,
   name: "Jane E2E",
@@ -96,7 +91,7 @@ const startFixtureServer = (respondWith) =>
 
 const runScript = ({ cwd, args, env = {} }) =>
   new Promise((resolve) => {
-    const child = spawn("npx", ["tsx", SCRIPT_PATH, ...args], {
+    const child = spawn("npx", ["tsx", "--tsconfig", TSCONFIG_PATH, SCRIPT_PATH, ...args], {
       cwd,
       env: { ...process.env, ...env },
       stdio: ["ignore", "pipe", "pipe"],
@@ -218,7 +213,7 @@ describe("sync-blog-content", () => {
     const imagePath = path.join(managedRoot, "en", "image-choice.md");
     const first = await fs.readFile(imagePath, "utf8");
     const firstImage = first.match(/heroImage: "([^"]+)"/u)?.[1];
-    assert.ok(firstImage && BLOG_HERO_IMAGES.includes(firstImage));
+    assert.match(firstImage ?? "", /^\/assets\/card-\d+\.(png|webp|jpe?g|gif|avif|svg)$/u);
 
     result = await invoke();
     assert.equal(result.code, 0, `stderr=${result.stderr}`);

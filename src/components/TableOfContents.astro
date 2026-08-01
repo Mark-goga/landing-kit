@@ -1,0 +1,238 @@
+---
+export interface TableOfContentsHeading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: TableOfContentsHeading[];
+  label: string;
+}
+
+const { headings, label } = Astro.props;
+const items = headings.filter(({ depth }) => depth === 2).map(({ slug, text }) => ({ slug, text }));
+const isLong = items.length > 14;
+---
+
+{items.length > 0 && (
+  <div class:list={["table-of-contents", { "table-of-contents--long": isLong }]} data-toc>
+    <button
+      type="button"
+      aria-label={label}
+      aria-haspopup="true"
+      aria-expanded="false"
+      aria-controls="article-table-of-contents"
+      data-toc-toggle
+    >
+      <span class="table-of-contents-icon" aria-hidden="true">
+        {items.map((_, index) => <span data-toc-line data-toc-index={index}></span>)}
+      </span>
+    </button>
+    <nav id="article-table-of-contents" class="table-of-contents-popover" aria-label={label}>
+      <ol>
+        {items.map((item, index) => (
+          <li><a href={`#${item.slug}`} data-toc-item data-toc-index={index}>{item.text}</a></li>
+        ))}
+      </ol>
+    </nav>
+  </div>
+)}
+
+<script>
+  document.querySelectorAll("[data-toc]").forEach((toc) => {
+    const toggle = toc.querySelector("[data-toc-toggle]");
+    if (!(toggle instanceof HTMLButtonElement)) return;
+    const links = Array.from(toc.querySelectorAll<HTMLAnchorElement>("[data-toc-item]"));
+    const lines = Array.from(toc.querySelectorAll<HTMLElement>("[data-toc-line]"));
+    const sections = links.map((link) => document.getElementById(link.hash.slice(1)));
+
+    const setOpen = (open: boolean) => {
+      toc.classList.toggle("is-open", open);
+      toggle.setAttribute("aria-expanded", String(open));
+    };
+
+    const setActive = (index: number) => {
+      links.forEach((link, itemIndex) => {
+        const active = itemIndex === index;
+        link.classList.toggle("is-active", active);
+        if (active) link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
+      });
+      lines.forEach((line, itemIndex) => line.classList.toggle("is-active", itemIndex === index));
+    };
+
+    const updateActive = () => {
+      let activeIndex = 0;
+      const marker = window.innerHeight * 0.32;
+      sections.forEach((section, index) => {
+        if (section && section.getBoundingClientRect().top <= marker) activeIndex = index;
+      });
+      setActive(activeIndex);
+    };
+
+    setActive(0);
+    const observer = new IntersectionObserver(updateActive, {
+      rootMargin: "-20% 0px -60% 0px",
+      threshold: 0,
+    });
+    sections.forEach((section) => section && observer.observe(section));
+
+    toc.addEventListener("pointerenter", () => setOpen(true));
+    toc.addEventListener("pointerleave", () => setOpen(false));
+    toggle.addEventListener("focus", () => setOpen(true));
+    toggle.addEventListener("click", () => {
+      const touchOnly = window.matchMedia("(hover: none), (pointer: coarse)").matches;
+      setOpen(touchOnly ? !toc.classList.contains("is-open") : true);
+    });
+    links.forEach((link, index) => link.addEventListener("click", (event) => {
+      event.preventDefault();
+      const target = sections[index];
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        setActive(index);
+      }
+      setOpen(false);
+    }));
+    document.addEventListener("pointerdown", (event) => {
+      if (!(event.target instanceof Node) || !toc.contains(event.target)) setOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        toggle.blur();
+      }
+    });
+  });
+</script>
+
+<style>
+  .table-of-contents {
+    position: fixed;
+    z-index: 20;
+    top: 50%;
+    right: 24px;
+    transform: translateY(-50%);
+  }
+
+  .table-of-contents button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    min-height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--article-text-muted, #6B6B6B);
+    cursor: pointer;
+  }
+
+  .table-of-contents button:hover,
+  .table-of-contents.is-open button {
+    color: var(--article-heading, #0E0E0E);
+  }
+
+  .table-of-contents button:focus-visible,
+  .table-of-contents a:focus-visible {
+    outline: 3px solid var(--article-accent, #4C27E3);
+    outline-offset: 3px;
+  }
+
+  .table-of-contents-icon {
+    display: grid;
+    gap: 6px;
+    width: 18px;
+    max-height: calc(100dvh - 48px);
+    overflow: hidden;
+  }
+
+  .table-of-contents-icon span {
+    display: block;
+    justify-self: center;
+    width: 14px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.35;
+    transition: opacity 160ms ease, background-color 160ms ease, transform 160ms ease;
+  }
+
+  .table-of-contents-icon span.is-active {
+    width: 18px;
+    background: var(--article-accent, #4C27E3);
+    opacity: 1;
+    transform: none;
+  }
+
+  .table-of-contents-popover {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%) translateX(6px);
+    width: min(340px, calc(100vw - 48px));
+    padding: 12px;
+    border: 1px solid var(--article-border, #D5D5D5);
+    border-radius: 12px;
+    background: var(--article-bg, #F3F3F3);
+    box-shadow: 0 14px 36px rgba(20, 18, 45, 0.14);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+
+  .table-of-contents.is-open .table-of-contents-popover {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(-50%) translateX(0);
+  }
+
+  .table-of-contents--long .table-of-contents-popover {
+    max-height: min(70dvh, 560px);
+    overflow-y: auto;
+  }
+
+  .table-of-contents ol {
+    display: grid;
+    gap: 10px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .table-of-contents a {
+    display: block;
+    padding: 8px;
+    border-radius: 7px;
+    color: var(--article-text-secondary, #3D3D3D);
+    font-family: "Roboto Flex", sans-serif;
+    font-size: 14px;
+    line-height: 1.35;
+    text-decoration: none;
+    transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
+  }
+
+  .table-of-contents a:hover {
+    background: var(--article-hover-bg, #E9E7F3);
+    color: var(--article-heading, #0E0E0E);
+  }
+
+  .table-of-contents a.is-active {
+    color: var(--article-accent, #4C27E3);
+    font-weight: 600;
+  }
+
+  @media (min-width: 1101px) {
+    .table-of-contents.is-open button {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .table-of-contents {
+      display: none;
+    }
+  }
+</style>
