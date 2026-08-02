@@ -55,7 +55,7 @@ const jsonLd = {
     font-family: "Roboto Flex", system-ui, -apple-system, sans-serif;
     font-size: 12.5px;
     letter-spacing: 0.02em;
-    color: #6b6975;
+    color: var(--article-text-muted, #6b6975);
     line-height: 1;
   }
   .crumb ol {
@@ -82,15 +82,15 @@ const jsonLd = {
     transition: color 0.15s ease, background 0.15s ease;
   }
   .crumb a:hover {
-    color: #4c27e3;
-    background: rgba(76, 39, 227, 0.08);
+    color: var(--article-accent, #4c27e3);
+    background: var(--article-hover-bg, rgba(76, 39, 227, 0.08));
   }
   .crumb .sep {
-    color: #cbc9d4;
+    color: var(--article-border-strong, #cbc9d4);
     flex-shrink: 0;
   }
   .crumb [aria-current="page"] {
-    color: #16151a;
+    color: var(--article-heading, #16151a);
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;

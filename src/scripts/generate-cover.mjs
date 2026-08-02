@@ -9,9 +9,9 @@
 // Uses rsvg-convert (`brew install librsvg`).
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import YAML from "yaml";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -22,7 +22,12 @@ const FAVICON_PATH = join(PUBLIC_DIR, "assets", "favicon.png");
 
 const FAVICON_DATA_URI = `data:image/png;base64,${readFileSync(FAVICON_PATH).toString("base64")}`;
 
-const THEMES = {
+const SITE_COVER_CONFIG_PATH = join(REPO_ROOT, "src/config/cover.mjs");
+const siteCoverConfig = existsSync(SITE_COVER_CONFIG_PATH)
+  ? await import(pathToFileURL(SITE_COVER_CONFIG_PATH).href)
+  : {};
+
+const DEFAULT_THEMES = {
   workflows: {
     label: "WORKFLOWS",
     from: "#5B34F0", to: "#3A1CB0", badge: "#E7DEFF",
@@ -64,13 +69,19 @@ const THEMES = {
   },
 };
 
-const PAGE_TYPE_TO_CATEGORY = {
+const DEFAULT_PAGE_TYPE_TO_CATEGORY = {
   how_to: "how-to",
   comparison: "workflows",
   concept: "learning-science",
   video_summary: "video",
   template: "tools",
 };
+
+const THEMES = { ...DEFAULT_THEMES, ...(siteCoverConfig.themes || {}) };
+const PAGE_TYPE_TO_CATEGORY = { ...DEFAULT_PAGE_TYPE_TO_CATEGORY, ...(siteCoverConfig.pageTypeToCategory || {}) };
+const STATIC_CATEGORY_TO_THEME = siteCoverConfig.staticCategoryToTheme || {};
+const DEFAULT_THEME_KEY = siteCoverConfig.defaultTheme || "workflows";
+const BRAND_NAME = siteCoverConfig.brand || "Fluxo";
 
 const XML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" };
 const escapeXml = (s) => String(s).replace(/[&<>"']/g, (c) => XML_ESCAPES[c]);
@@ -97,8 +108,15 @@ function estimateReadMin(body) {
   return Math.max(3, Math.round(words / 220));
 }
 
-function svg({ title, category, readMin = 6, brand = "Fluxo" }) {
-  const t = THEMES[category] || THEMES.workflows;
+const XML_ESCAPES_EXPORT = XML_ESCAPES; // reserved for future re-export
+export const svgHelpers = { escapeXml, wrap, fontSizeForLines };
+
+// Kit-supplied default SVG. Sites can replace it entirely by exporting
+// `renderSvg({ title, category, readMin, brand, theme })` from src/config/cover.mjs.
+// The site-supplied renderer receives the resolved theme + brand so it can
+// build a fully custom layout while still reusing the batch pipeline below.
+function defaultSvg({ title, category, readMin = 6, brand = BRAND_NAME }) {
+  const t = THEMES[category] || THEMES[DEFAULT_THEME_KEY] || THEMES.workflows;
   const lines = wrap(title, category === "learning-science" ? 20 : 22);
   const fs = fontSizeForLines(lines.length);
   const lineHeight = Math.round(fs * 1.12);
@@ -123,6 +141,19 @@ function svg({ title, category, readMin = 6, brand = "Fluxo" }) {
   <text x="148" y="547" font-size="26" font-weight="700" fill="#fff">${escapeXml(brand)}</text>
   <text x="1120" y="547" font-size="22" font-weight="500" fill="#D9CEFF" text-anchor="end">${readMin} min read</text>
 </svg>`;
+}
+
+function svg(args) {
+  if (typeof siteCoverConfig.renderSvg === "function") {
+    const theme = THEMES[args.category] || THEMES[DEFAULT_THEME_KEY] || THEMES.workflows;
+    return siteCoverConfig.renderSvg({
+      ...args,
+      brand: args.brand ?? BRAND_NAME,
+      theme,
+      helpers: svgHelpers,
+    });
+  }
+  return defaultSvg(args);
 }
 
 function rasterize(svgString, outPng) {
@@ -173,7 +204,12 @@ function articleFromFile(filePath) {
   const raw = readFileSync(filePath, "utf8");
   const { yaml, body } = splitFrontmatter(raw);
   const fm = YAML.parse(yaml);
-  const category = PAGE_TYPE_TO_CATEGORY[fm.pageType] || "workflows";
+  // Static-blog frontmatter has no pageType — map its plain `category` string
+  // via the site's staticCategoryToTheme config. Generated posts stick with
+  // pageType → theme so behaviour for existing Fluxo generated posts is unchanged.
+  const category = fm.pageType
+    ? (PAGE_TYPE_TO_CATEGORY[fm.pageType] || DEFAULT_THEME_KEY)
+    : (STATIC_CATEGORY_TO_THEME[fm.category] || DEFAULT_THEME_KEY);
   return {
     filePath, fm, body,
     slug: fm.slug,
