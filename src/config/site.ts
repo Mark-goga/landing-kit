@@ -78,10 +78,13 @@ export const xDefaultPath = "/";
 // Contract every landing implements at `@site/config/brand.ts`.
 export type BrandTokens = {
   themeColor: string;
+  themeColorDark?: string;
   trackingGlobal: string;
   faviconPath: string;
   faviconDarkPath: string;
   ogImagePath: string;
   googleFontsUrl: string;
   logoPath: string;
+  twitterSite?: string;
+  twitterCreator?: string;
 };

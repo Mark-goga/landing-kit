@@ -1,5 +1,15 @@
 # landing-kit
 
+> ⚠️ **Shared code.** This repo is a git submodule of every landing (Fluxo, Dzing, and future). A change on `main` ships to every consumer the next time they bump the submodule pointer. Read [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md) **before** editing anything here.
+
+## Docs
+
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — layout, boundary between kit and consumer, data flow
+- [`docs/CONSUMERS.md`](./docs/CONSUMERS.md) — how a landing wires the kit in (aliases, env, expected `@site/*` files)
+- [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md) — golden rules + blast-radius checklist
+
+## Overview
+
 Shared Astro landing chrome consumed by Fluxo, Dzing, and future landings as a
 git submodule. Ships:
 

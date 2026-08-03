@@ -11,6 +11,7 @@ import TableOfContents from "../components/TableOfContents.astro";
 import { siteConfig, pageAssetUrl, absoluteUrl, supportedLocales, type LocaleKey } from "../config/site";
 import { landingContent, localeMeta, type LanguageOption } from "@site/data/locales";
 import { withBrandSuffix } from "../lib/page-title";
+import { wordCount, articleBodyExcerpt } from "../lib/article-body";
 
 interface Props {
   slug: string;
@@ -82,6 +83,10 @@ const publishedDisplay = publishedDate.toLocaleDateString(dateLocaleMap[locale] 
   day: "numeric",
 });
 
+const bodyRaw = entry.body ?? "";
+const articleWordCount = wordCount(bodyRaw);
+const articleBody = articleBodyExcerpt(bodyRaw);
+
 const articleSchema = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
@@ -93,6 +98,8 @@ const articleSchema = {
   ...(timeRequired ? { timeRequired } : {}),
   mainEntityOfPage: absoluteUrl(routePath),
   inLanguage: locale,
+  ...(articleWordCount > 0 ? { wordCount: articleWordCount } : {}),
+  ...(articleBody ? { articleBody } : {}),
   author: {
     "@type": "Person",
     name: authorName,

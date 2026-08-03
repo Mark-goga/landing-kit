@@ -11,6 +11,7 @@ import TableOfContents from "../components/TableOfContents.astro";
 import { siteConfig, absoluteUrl, supportedLocales, type LocaleKey } from "../config/site";
 import { landingContent, localeMeta, type LanguageOption } from "@site/data/locales";
 import { withBrandSuffix } from "../lib/page-title";
+import { wordCount, articleBodyExcerpt } from "../lib/article-body";
 
 interface Props {
   entry: CollectionEntry<"blog">;
@@ -108,6 +109,10 @@ const generatedHeroAltPrefix: Record<LocaleKey, string> = {
 };
 const generatedHeroAlt = `${generatedHeroAltPrefix[locale]}: ${data.title}`;
 
+const bodyRaw = entry.body ?? "";
+const generatedWordCount = wordCount(bodyRaw);
+const generatedArticleBody = articleBodyExcerpt(bodyRaw);
+
 const articleSchema = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
@@ -118,6 +123,8 @@ const articleSchema = {
   dateModified: modifiedDate.toISOString(),
   mainEntityOfPage: absoluteUrl(routePath),
   inLanguage: locale,
+  ...(generatedWordCount > 0 ? { wordCount: generatedWordCount } : {}),
+  ...(generatedArticleBody ? { articleBody: generatedArticleBody } : {}),
   author: {
     "@type": "Person",
     name: data.author.name,

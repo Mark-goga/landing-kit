@@ -1,5 +1,5 @@
 import { getCollection, type CollectionEntry } from "astro:content";
-import { absoluteUrl, supportedLocales, xDefaultPath, type LocaleKey } from "../config/site";
+import { absoluteUrl, siteConfig, supportedLocales, xDefaultPath, type LocaleKey } from "../config/site";
 import { HUMAN_BLOG_SLUGS } from "@site/config/generated-blog-collision";
 
 const localePath = (l: LocaleKey, slug: string): string =>
@@ -44,6 +44,12 @@ const imageBlock = (
   return lines.join("\n");
 };
 
+const landingHeroImageBlock = imageBlock(
+  absoluteUrl(`/${siteConfig.heroImagePath.replace(/^\/+/, "")}`),
+  siteConfig.name,
+  null,
+);
+
 const localeUrls = supportedLocales
   .map(
     (locale) => `  <url>
@@ -51,6 +57,7 @@ const localeUrls = supportedLocales
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
 ${alternateLinks((alternate) => absoluteUrl(alternate.path), absoluteUrl(xDefaultPath))}
+${landingHeroImageBlock}
   </url>`,
   )
   .join("\n");
@@ -233,7 +240,7 @@ export async function GET() {
     .map(
       (e) => `  <url>
     <loc>${e.loc}</loc>${e.lastmod ? `\n    <lastmod>${e.lastmod}</lastmod>` : ""}
-    <changefreq>yearly</changefreq>
+    <changefreq>monthly</changefreq>
     <priority>0.7</priority>
 ${e.altBlock}${e.image ? `\n${e.image}` : ""}
   </url>`,

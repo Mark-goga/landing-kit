@@ -1,0 +1,166 @@
+---
+import { pageAssetUrl, siteConfig } from "../config/site";
+import { brandTokens } from "@site/config/brand";
+
+interface AlternateLink {
+  hreflang: string;
+  href: string;
+}
+
+interface ArticleMeta {
+  publishedTime?: string;
+  modifiedTime?: string;
+  author?: string;
+  section?: string;
+  tags?: string[];
+}
+
+interface PreloadHint {
+  href: string;
+  as: "image" | "font" | "style" | "script";
+  type?: string;
+  fetchpriority?: "high" | "low" | "auto";
+  crossorigin?: "anonymous" | "use-credentials";
+}
+
+interface Props {
+  title: string;
+  description: string;
+  canonicalUrl: string;
+  routePath: string;
+  lang: string;
+  robots?: string;
+  alternates?: AlternateLink[];
+  openGraphType?: "website" | "article";
+  openGraphTitle?: string;
+  openGraphDescription?: string;
+  openGraphImage: string;
+  openGraphImageAlt?: string;
+  openGraphImageWidth?: number;
+  openGraphImageHeight?: number;
+  openGraphImageType?: string;
+  openGraphLocale?: string;
+  openGraphLocaleAlternates?: string[];
+  twitterCard?: "summary" | "summary_large_image";
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  authorName?: string;
+  articleMeta?: ArticleMeta;
+  preloads?: PreloadHint[];
+  rssHref?: string;
+  rssTitle?: string;
+}
+
+const {
+  title,
+  description,
+  canonicalUrl,
+  routePath,
+  lang,
+  robots = "index, follow",
+  alternates = [],
+  openGraphType = "website",
+  openGraphTitle,
+  openGraphDescription,
+  openGraphImage,
+  openGraphImageAlt,
+  openGraphImageWidth,
+  openGraphImageHeight,
+  openGraphImageType,
+  openGraphLocale,
+  openGraphLocaleAlternates = [],
+  twitterCard = "summary_large_image",
+  twitterTitle,
+  twitterDescription,
+  twitterImage,
+  authorName,
+  articleMeta,
+  preloads = [],
+  rssHref,
+  rssTitle,
+} = Astro.props;
+
+const favicon = pageAssetUrl(routePath, brandTokens.faviconPath);
+const faviconDark = pageAssetUrl(routePath, brandTokens.faviconDarkPath);
+const resolvedOgTitle = openGraphTitle ?? title;
+const resolvedOgDescription = openGraphDescription ?? description;
+const resolvedTwitterTitle = twitterTitle ?? title;
+const resolvedTwitterDescription = twitterDescription ?? description;
+const resolvedTwitterImage = twitterImage ?? openGraphImage;
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{title}</title>
+
+<meta name="description" content={description} />
+<meta name="robots" content={robots} />
+<meta name="theme-color" content={brandTokens.themeColor} />
+{brandTokens.themeColorDark && (
+  <meta name="theme-color" content={brandTokens.themeColorDark} media="(prefers-color-scheme: dark)" />
+)}
+{authorName && <meta name="author" content={authorName} />}
+
+<link rel="canonical" href={canonicalUrl} />
+{alternates.map((alternate) => (
+  <link rel="alternate" hreflang={alternate.hreflang} href={alternate.href} />
+))}
+{rssHref && (
+  <link rel="alternate" type="application/rss+xml" title={rssTitle ?? `${siteConfig.name} Blog`} href={rssHref} />
+)}
+
+<link rel="icon" type="image/png" href={favicon} />
+<link rel="icon" type="image/png" href={faviconDark} media="(prefers-color-scheme: dark)" />
+<link rel="apple-touch-icon" href={favicon} />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href={brandTokens.googleFontsUrl}
+  media="print"
+  onload="this.media='all'"
+/>
+<noscript>
+  <link rel="stylesheet" href={brandTokens.googleFontsUrl} />
+</noscript>
+
+{preloads.map((preload) => (
+  <link
+    rel="preload"
+    as={preload.as}
+    href={preload.href}
+    type={preload.type}
+    fetchpriority={preload.fetchpriority}
+    crossorigin={preload.crossorigin}
+  />
+))}
+
+<meta property="og:type" content={openGraphType} />
+<meta property="og:site_name" content={siteConfig.name} />
+<meta property="og:title" content={resolvedOgTitle} />
+<meta property="og:description" content={resolvedOgDescription} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:image" content={openGraphImage} />
+{openGraphImageWidth && <meta property="og:image:width" content={String(openGraphImageWidth)} />}
+{openGraphImageHeight && <meta property="og:image:height" content={String(openGraphImageHeight)} />}
+{openGraphImageType && <meta property="og:image:type" content={openGraphImageType} />}
+{openGraphImageAlt && <meta property="og:image:alt" content={openGraphImageAlt} />}
+{openGraphLocale && <meta property="og:locale" content={openGraphLocale} />}
+{openGraphLocaleAlternates.map((loc) => (
+  <meta property="og:locale:alternate" content={loc} />
+))}
+
+{articleMeta?.publishedTime && <meta property="article:published_time" content={articleMeta.publishedTime} />}
+{articleMeta?.modifiedTime && <meta property="article:modified_time" content={articleMeta.modifiedTime} />}
+{articleMeta?.author && <meta property="article:author" content={articleMeta.author} />}
+{articleMeta?.section && <meta property="article:section" content={articleMeta.section} />}
+{articleMeta?.tags?.map((tag) => <meta property="article:tag" content={tag} />)}
+
+<meta name="twitter:card" content={twitterCard} />
+<meta name="twitter:title" content={resolvedTwitterTitle} />
+<meta name="twitter:description" content={resolvedTwitterDescription} />
+<meta name="twitter:image" content={resolvedTwitterImage} />
+{brandTokens.twitterSite && <meta name="twitter:site" content={brandTokens.twitterSite} />}
+{brandTokens.twitterCreator && <meta name="twitter:creator" content={brandTokens.twitterCreator} />}
