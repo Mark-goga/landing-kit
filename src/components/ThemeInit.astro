@@ -1,0 +1,86 @@
+---
+// Pre-paint theme init + browser-chrome sync.
+//
+// Renders an inline blocking <script> in <head> that:
+//   1. Resolves the active theme (sessionStorage → prefers-color-scheme)
+//     and sets `html[data-theme]` BEFORE the first paint, so dark palette CSS
+//     targeting `html[data-theme="dark"]` applies without FOUC.
+//     sessionStorage (not localStorage) is deliberate: the toggle choice
+//     survives navigation + reload within the tab but resets to the system
+//     preference when the tab is closed and reopened.
+//   2. Keeps `<meta name="theme-color">` and the favicon in sync with the
+//     active theme via a MutationObserver on `html[data-theme]` — the same
+//     mechanism handles the initial load and every toggle click. Toggle
+//     handling lives in ThemeToggle.astro; that component just flips the
+//     attribute, this component reacts.
+//
+// Opt-in per landing: renders only when `brandTokens.themeColorDark` is set.
+// Landings without a dark palette (Dzing today) get nothing.
+import { brandTokens } from "@site/config/brand";
+
+const enabled = Boolean(brandTokens.themeColorDark);
+const light = brandTokens.themeColor;
+const dark = brandTokens.themeColorDark ?? brandTokens.themeColor;
+const storageKey = "landing-theme";
+---
+
+{enabled && (
+  <script is:inline define:vars={{ light, dark, storageKey }}>
+    (function () {
+      if (window.__landingThemeInit) return;
+      window.__landingThemeInit = true;
+      var root = document.documentElement;
+      var stored = null;
+      try { stored = sessionStorage.getItem(storageKey); } catch (_) {}
+      var systemDark =
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+      var theme = stored === "dark" || stored === "light"
+        ? stored
+        : systemDark ? "dark" : "light";
+      root.setAttribute("data-theme", theme);
+
+      var faviconCache = null;
+      function readFaviconCache() {
+        if (faviconCache) return faviconCache;
+        var links = document.querySelectorAll('link[rel="icon"]');
+        var lightHref = null, darkHref = null;
+        links.forEach(function (el) {
+          var m = el.getAttribute("media");
+          if (m && /dark/.test(m)) darkHref = el.getAttribute("href");
+          else lightHref = el.getAttribute("href");
+        });
+        faviconCache = { light: lightHref, dark: darkHref || lightHref };
+        return faviconCache;
+      }
+
+      function applyChrome(t) {
+        var color = t === "dark" ? dark : light;
+        document.querySelectorAll('meta[name="theme-color"][media]')
+          .forEach(function (el) { el.remove(); });
+        var meta = document.querySelector('meta[name="theme-color"]:not([media])');
+        if (!meta) {
+          meta = document.createElement("meta");
+          meta.setAttribute("name", "theme-color");
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute("content", color);
+
+        var cache = readFaviconCache();
+        var eff = t === "dark" ? cache.dark : cache.light;
+        if (eff) {
+          document.querySelectorAll('link[rel="icon"]').forEach(function (el) {
+            el.removeAttribute("media");
+            el.setAttribute("href", eff);
+          });
+        }
+      }
+
+      applyChrome(theme);
+      new MutationObserver(function () {
+        var cur = root.getAttribute("data-theme") === "dark" ? "dark" : "light";
+        applyChrome(cur);
+      }).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    })();
+  </script>
+)}

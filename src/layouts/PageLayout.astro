@@ -1,6 +1,7 @@
 ---
 import { absoluteUrl, pageAssetUrl, siteConfig } from "../config/site";
 import SeoHead from "../components/SeoHead.astro";
+import ThemeInit from "../components/ThemeInit.astro";
 import TrackingScripts from "../components/TrackingScripts.astro";
 import TurnstileScript from "../components/TurnstileScript.astro";
 import "@site/styles/styles.css";
@@ -96,6 +97,7 @@ const scriptPath = pageAssetUrl(routePath, siteConfig.scriptPath);
       articleMeta={articleMeta}
     />
     <slot name="head" />
+    <ThemeInit />
   </head>
   <body class:list={{ "page-surface--muted": surface === "muted" }}>
     <slot />

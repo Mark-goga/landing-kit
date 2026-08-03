@@ -2,6 +2,7 @@
 import { pageAssetUrl } from "../config/site";
 import { brandTokens } from "@site/config/brand";
 import type { LandingContent, LanguageOption } from "@site/data/locales";
+import ThemeToggle from "./ThemeToggle.astro";
 
 interface Props {
   content: LandingContent;
@@ -63,6 +64,7 @@ const resolveHeaderHref = (href: string) => (href.startsWith("#") && href.length
             </ul>
           </div>
         )}
+        <ThemeToggle />
         <button
           type="button"
           class="btn-secondary"

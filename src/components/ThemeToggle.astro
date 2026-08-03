@@ -1,0 +1,85 @@
+---
+// renders a theme toggle button. opt-in via `brandtokens.themecolordark`.
+// landings supply the visual treatment (`.theme-toggle` class) in their own
+// stylesheet. the click handler flips `html[data-theme]` and persists the
+// choice in sessionstorage (per-tab: survives navigation + reload, forgets
+// on tab close so the next visit re-reads `prefers-color-scheme`). the
+// themeinit script's mutationobserver picks up the flip and updates the
+// browser chrome (theme-color meta + favicon).
+import { brandTokens } from "@site/config/brand";
+
+interface Props {
+  variant?: "header" | "mobile";
+  clarityEvent?: string;
+}
+
+const { variant = "header", clarityEvent } = Astro.props;
+const enabled = Boolean(brandTokens.themeColorDark);
+const cls = variant === "mobile" ? "theme-toggle theme-toggle--mobile" : "theme-toggle";
+---
+
+{
+  enabled && (
+    <button
+      type="button"
+      class={cls}
+      aria-label="Toggle dark mode"
+      data-theme-toggle
+      data-clarity-event={clarityEvent}
+    >
+      <svg
+        class="theme-toggle-icon--moon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+      <svg
+        class="theme-toggle-icon--sun"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+      </svg>
+    </button>
+  )
+}
+
+<script>
+  const STORAGE_KEY = "landing-theme";
+
+  const sync = (theme: "light" | "dark") => {
+    document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+      btn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+    });
+  };
+
+  const cur = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  sync(cur);
+
+  document.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement | null;
+    const btn = target?.closest("[data-theme-toggle]");
+    if (!btn) return;
+    const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try {
+      sessionStorage.setItem(STORAGE_KEY, next);
+    } catch (_) {
+      // ignore quota / privacy-mode errors
+    }
+    sync(next);
+  });
+</script>

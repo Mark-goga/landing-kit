@@ -2,6 +2,7 @@
 import { absoluteUrl, pageAssetUrl, siteConfig, supportedLocales, xDefaultPath } from "../config/site";
 import type { LandingContent } from "@site/data/locales";
 import SeoHead from "../components/SeoHead.astro";
+import ThemeInit from "../components/ThemeInit.astro";
 import TrackingScripts from "../components/TrackingScripts.astro";
 import TurnstileScript from "../components/TurnstileScript.astro";
 import "@site/styles/styles.css";
@@ -165,6 +166,7 @@ const faqJson = content.faq?.items?.length
     {faqJson && (
       <script type="application/ld+json" set:html={JSON.stringify(faqJson)}></script>
     )}
+    <ThemeInit />
   </head>
   <body>
     <slot />
