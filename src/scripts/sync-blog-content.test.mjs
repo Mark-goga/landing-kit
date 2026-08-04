@@ -169,8 +169,8 @@ describe("sync-blog-content", () => {
     assert.ok(Array.isArray(parsed.files));
     assert.equal(parsed.files.length, 2);
 
-    const enFile = path.join(managedRoot, "en", "active-recall.md");
-    const ukFile = path.join(managedRoot, "uk", "active-recall.md");
+    const enFile = path.join(managedRoot, "en", "active-recall.mdx");
+    const ukFile = path.join(managedRoot, "uk", "active-recall.mdx");
     assert.ok(existsSync(enFile));
     assert.ok(existsSync(ukFile));
     const manifestPath = path.join(managedRoot, "manifest.json");
@@ -181,7 +181,7 @@ describe("sync-blog-content", () => {
     assert.equal(manifest.posts.length, 2);
   });
 
-  it("preserves backend-owned Markdown exactly", async () => {
+  it("preserves backend-owned MDX exactly", async () => {
     setResponse(
       buildExport({
         bodyMdx:
@@ -190,17 +190,17 @@ describe("sync-blog-content", () => {
     );
     const result = await invoke();
     assert.equal(result.code, 0, `stderr=${result.stderr}`);
-    const body = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"), "utf8");
+    const body = await fs.readFile(path.join(managedRoot, "en", "active-recall.mdx"), "utf8");
     assert.match(body, /\*\*Source:\*\*/);
     assert.match(body, /> A meaningful quote that belongs to the article\./);
   });
 
   it("uses the backend updatedAt as modifiedAt and preserves it on later syncs", async () => {
-    const before = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"), "utf8");
+    const before = await fs.readFile(path.join(managedRoot, "en", "active-recall.mdx"), "utf8");
     const beforeManifest = await fs.readFile(path.join(managedRoot, "manifest.json"));
     const result = await invoke();
     assert.equal(result.code, 0, `stderr=${result.stderr}`);
-    const after = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"), "utf8");
+    const after = await fs.readFile(path.join(managedRoot, "en", "active-recall.mdx"), "utf8");
     const afterManifest = await fs.readFile(path.join(managedRoot, "manifest.json"));
     const beforeModifiedAt = before.match(/^modifiedAt: "([^"]+)"$/mu)?.[1];
     const afterModifiedAt = after.match(/^modifiedAt: "([^"]+)"$/mu)?.[1];
@@ -220,7 +220,7 @@ describe("sync-blog-content", () => {
     let result = await invoke();
     assert.equal(result.code, 0, `stderr=${result.stderr}`);
 
-    const imagePath = path.join(managedRoot, "en", "image-choice.md");
+    const imagePath = path.join(managedRoot, "en", "image-choice.mdx");
     const first = await fs.readFile(imagePath, "utf8");
     const firstImage = first.match(/heroImage: "([^"]+)"/u)?.[1];
     assert.match(firstImage ?? "", /^\/assets\/card-\d+\.(png|webp|jpe?g|gif|avif|svg)$/u);
@@ -244,7 +244,7 @@ describe("sync-blog-content", () => {
     );
     const result = await invoke();
     assert.equal(result.code, 0, `stderr=${result.stderr}`);
-    const serialized = await fs.readFile(path.join(managedRoot, "en", "video-summary.md"), "utf8");
+    const serialized = await fs.readFile(path.join(managedRoot, "en", "video-summary.mdx"), "utf8");
     assert.doesNotMatch(serialized, /heroImage:/u);
   });
 
@@ -256,9 +256,9 @@ describe("sync-blog-content", () => {
     );
     const result = await invoke();
     assert.equal(result.code, 0, `stderr=${result.stderr}`);
-    assert.ok(existsSync(path.join(managedRoot, "en", "active-recall.md")));
+    assert.ok(existsSync(path.join(managedRoot, "en", "active-recall.mdx")));
     assert.equal(
-      existsSync(path.join(managedRoot, "uk", "active-recall.md")),
+      existsSync(path.join(managedRoot, "uk", "active-recall.mdx")),
       false,
       "uk translation should be removed when it disappears from the export",
     );
@@ -268,11 +268,11 @@ describe("sync-blog-content", () => {
     const invalidResponse = buildExport();
     invalidResponse.schemaVersion = 2;
     setResponse(invalidResponse);
-    const before = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"));
+    const before = await fs.readFile(path.join(managedRoot, "en", "active-recall.mdx"));
     const result = await invoke();
     assert.notEqual(result.code, 0);
     assert.match(result.stderr, /schemaVersion|Unrecognized|Invalid/);
-    const after = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"));
+    const after = await fs.readFile(path.join(managedRoot, "en", "active-recall.mdx"));
     assert.deepEqual(after, before, "existing managed content must be untouched on schema failure");
     setResponse(buildExport());
   });
@@ -281,11 +281,11 @@ describe("sync-blog-content", () => {
     const mismatched = buildExport();
     mismatched.application.id = OTHER_APPLICATION_ID;
     setResponse(mismatched);
-    const before = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"));
+    const before = await fs.readFile(path.join(managedRoot, "en", "active-recall.mdx"));
     const result = await invoke();
     assert.notEqual(result.code, 0);
     assert.match(result.stderr, /Application mismatch|application/i);
-    const after = await fs.readFile(path.join(managedRoot, "en", "active-recall.md"));
+    const after = await fs.readFile(path.join(managedRoot, "en", "active-recall.mdx"));
     assert.deepEqual(after, before);
     setResponse(buildExport());
   });

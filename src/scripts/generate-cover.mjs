@@ -3,7 +3,7 @@
 //
 // Modes:
 //   node generate-cover.mjs '<json>' [outPath]        legacy: render one article from JSON
-//   node generate-cover.mjs --all [--managed-root=<p>] batch every article in the managed content root; updates frontmatter heroImage
+//   node generate-cover.mjs --all [--managed-root=<p>] batch every article in the managed content root
 //   node generate-cover.mjs --slug=<slug> [--locale=en]  regenerate one article
 //
 // Uses rsvg-convert (`brew install librsvg`).
@@ -243,7 +243,7 @@ function findManagedFiles(managedRoot) {
     try { s = statSync(dir); } catch { continue; }
     if (!s.isDirectory()) continue;
     for (const name of readdirSync(dir)) {
-      if (name.endsWith(".md")) out.push(join(dir, name));
+      if (name.endsWith(".mdx") || name.endsWith(".md")) out.push(join(dir, name));
     }
   }
   return out;

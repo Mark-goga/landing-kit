@@ -1,0 +1,45 @@
+---
+interface Props {
+  text: string;
+  source?: string;
+}
+
+const { text, source } = Astro.props;
+---
+
+<figure class="article-pullquote">
+  <blockquote class="article-pullquote__text">{text}</blockquote>
+  {source && <figcaption class="article-pullquote__source">{source}</figcaption>}
+</figure>
+
+<style is:global>
+  .article-pullquote {
+    margin: 3rem 0;
+    padding: 0.25rem 0 0.25rem 1.5rem;
+    text-align: left;
+    border-left: 3px solid var(--article-accent, #4C27E3);
+  }
+
+  .article-pullquote__text {
+    font-family: inherit;
+    font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+    line-height: 1.45;
+    color: var(--article-heading, #0E0E0E);
+    font-weight: 500;
+    margin: 0;
+    quotes: none;
+  }
+
+  .article-pullquote__source {
+    margin-top: 0.9rem;
+    font-size: 0.875rem;
+    color: var(--article-text-muted, #6B6B6B);
+  }
+
+  @media (max-width: 640px) {
+    .article-pullquote {
+      margin: 2.25rem 0;
+      padding: 0.25rem 0 0.25rem 1.15rem;
+    }
+  }
+</style>

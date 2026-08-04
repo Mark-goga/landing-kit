@@ -1,0 +1,68 @@
+---
+interface Props {
+  items: string[];
+  label?: string;
+}
+
+const { items, label = "Key takeaways" } = Astro.props;
+---
+
+{items && items.length > 0 && (
+  <aside class="article-keytakeaways" aria-label={label}>
+    <p class="article-keytakeaways__label">{label}</p>
+    <ul class="article-keytakeaways__list">
+      {items.map((item) => (
+        <li class="article-keytakeaways__item">{item}</li>
+      ))}
+    </ul>
+  </aside>
+)}
+
+<style is:global>
+  .article-keytakeaways {
+    margin: 2.25rem 0;
+    padding: 1.125rem 1.25rem;
+    border: 1px solid var(--article-border, rgba(14, 14, 14, 0.12));
+    border-radius: 12px;
+    background: var(--article-callout-surface, var(--article-accent-tint, rgba(76, 39, 227, 0.06)));
+  }
+
+  .article-keytakeaways__label {
+    font-family: inherit;
+    font-size: 0.875rem;
+    letter-spacing: 0;
+    color: var(--article-heading, #0E0E0E);
+    margin: 0 0 0.375rem !important;
+    font-weight: 600;
+  }
+
+  .article-keytakeaways__list {
+    padding: 0 0 0 1.1rem !important;
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .article-keytakeaways__item {
+    margin: 0 !important;
+    padding-left: 0.1rem !important;
+    font-size: 1rem !important;
+    line-height: 1.45 !important;
+    color: var(--article-text, #1C1C1C);
+  }
+
+  .article-keytakeaways__item::marker {
+    color: var(--article-accent, #4C27E3);
+  }
+
+  @media (max-width: 640px) {
+    .article-keytakeaways {
+      margin: 2rem 0 2.25rem;
+      padding: 1.1rem 1.2rem;
+    }
+    .article-keytakeaways__item {
+      font-size: 0.94rem;
+    }
+  }
+</style>

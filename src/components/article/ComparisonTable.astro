@@ -1,0 +1,139 @@
+---
+interface ComparisonRow {
+  cells: string[];
+  recommended?: boolean;
+}
+
+interface Props {
+  columns: string[];
+  rows: ComparisonRow[];
+  title?: string;
+  note?: string;
+  recommendedLabel?: string;
+}
+
+const {
+  columns,
+  rows,
+  title,
+  note,
+  recommendedLabel = "Recommended",
+} = Astro.props;
+---
+
+{columns.length > 0 && rows.length > 0 && (
+  <section class="article-comparison" aria-label={title ?? "Comparison"}>
+    {title && <h2 class="article-comparison__title">{title}</h2>}
+    <div class="article-comparison__scroll" tabindex="0">
+      <table class="article-comparison__table">
+        <thead>
+          <tr>
+            {columns.map((column) => <th scope="col">{column}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr data-recommended={row.recommended ? "true" : undefined}>
+              {row.cells.map((cell, index) => (
+                <td>
+                  {index === 0 ? <strong>{cell}</strong> : cell}
+                  {row.recommended && index === 0 && (
+                    <span class="article-comparison__badge">{recommendedLabel}</span>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {note && <p class="article-comparison__note">{note}</p>}
+  </section>
+)}
+
+<style is:global>
+  .article-comparison {
+    margin: 3rem 0 1.75rem;
+  }
+
+  .article-comparison__title {
+    margin: 0 0 1rem;
+    color: var(--article-heading, #0E0E0E);
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .article-comparison__scroll {
+    overflow-x: auto;
+    border: 1px solid var(--article-border, rgba(14, 14, 14, 0.12));
+    border-radius: 12px;
+  }
+
+  .article-comparison__scroll:focus-visible {
+    outline: 3px solid var(--article-accent, #4C27E3);
+    outline-offset: 3px;
+  }
+
+  .article-comparison__table {
+    width: 100%;
+    min-width: 38rem;
+    border-collapse: collapse;
+    color: var(--article-text, #1C1C1C);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    text-align: left;
+  }
+
+  .article-comparison__table th,
+  .article-comparison__table td {
+    padding: 0.9rem 1rem;
+    vertical-align: top;
+  }
+
+  .article-comparison__table th {
+    background: var(--article-th-bg, rgba(14, 14, 14, 0.04));
+    border-bottom: 1px solid var(--article-border-strong, rgba(14, 14, 14, 0.18));
+    color: var(--article-heading, #0E0E0E);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  .article-comparison__table td {
+    border-bottom: 1px solid var(--article-border, rgba(14, 14, 14, 0.12));
+  }
+
+  .article-comparison__table tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .article-comparison__table tr[data-recommended="true"] td {
+    background: var(--article-callout-surface, var(--article-accent-tint, rgba(76, 39, 227, 0.06)));
+  }
+
+  .article-comparison__table tr[data-recommended="true"] td:first-child {
+    box-shadow: inset 3px 0 0 var(--article-accent, #4C27E3);
+  }
+
+  .article-comparison__badge {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--article-accent, #4C27E3);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .article-comparison__note {
+    margin: 0;
+    padding-top: 1.25rem;
+    color: var(--article-text-muted, #6B6B6B);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 640px) {
+    .article-comparison {
+      margin: 2.25rem 0 1.5rem;
+    }
+  }
+</style>

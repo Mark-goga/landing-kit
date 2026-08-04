@@ -25,7 +25,7 @@ const frontmatterOverrides = {
 };
 
 // Landing frontmatter contract is a subset of the export contract:
-// - bodyMdx: written to the body of the .md file, not frontmatter
+  // - bodyMdx: written to the body of the .mdx file, not frontmatter
 // - includedInRebuild: internal signal, not persisted
 // - updatedAt: sync-blog-content.ts persists it as `modifiedAt` instead — no
 //   raw `updatedAt` field in landing frontmatter, so omitting keeps schema
@@ -46,7 +46,7 @@ export const blogPostSchema = z.discriminatedUnion("pageType", [
 
 const blog = defineCollection({
   loader: glob({
-    pattern: "{en,uk,es,de}/*.md",
+    pattern: "{en,uk,es,de}/*.{md,mdx}",
     base: "./src/content/blog/generated",
   }),
   schema: blogPostSchema,

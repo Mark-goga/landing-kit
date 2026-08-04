@@ -8,6 +8,11 @@ import FaqAccordion from "../components/FaqAccordion.astro";
 import KeepReading from "../components/KeepReading.astro";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import TableOfContents from "../components/TableOfContents.astro";
+import KeyTakeaways from "../components/article/KeyTakeaways.astro";
+import PerspectiveCallout from "../components/article/PerspectiveCallout.astro";
+import PullQuote from "../components/article/PullQuote.astro";
+import MidCta from "../components/article/MidCta.astro";
+import ComparisonTable from "../components/article/ComparisonTable.astro";
 import { siteConfig, absoluteUrl, supportedLocales, type LocaleKey } from "../config/site";
 import { landingContent, localeMeta, type LanguageOption } from "@site/data/locales";
 import { withBrandSuffix } from "../lib/page-title";
@@ -265,7 +270,7 @@ const howToSchema = howToSteps.length >= 2
       </div>
 
       <div class="article-body">
-        <Content />
+        <Content components={{ KeyTakeaways, PerspectiveCallout, PullQuote, MidCta, ComparisonTable }} />
       </div>
 
       {videoEmbedUrl && (
@@ -601,7 +606,7 @@ const howToSchema = howToSteps.length >= 2
     margin: 36px 0 12px;
   }
 
-  .article-body :global(a) {
+  .article-body :global(a:not(.article-cta-button)) {
     color: var(--article-accent, #4C27E3);
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -621,7 +626,7 @@ const howToSchema = howToSteps.length >= 2
     margin-bottom: 12px;
   }
 
-  .article-body :global(table) {
+  .article-body :global(table:not(.article-comparison__table)) {
     width: 100%;
     border-collapse: collapse;
     margin: 36px 0;
@@ -631,37 +636,37 @@ const howToSchema = howToSteps.length >= 2
     color: var(--article-text, #1C1C1C);
   }
 
-  .article-body :global(th),
-  .article-body :global(td) {
+  .article-body :global(table:not(.article-comparison__table) th),
+  .article-body :global(table:not(.article-comparison__table) td) {
     padding: 14px 16px;
     text-align: left;
     vertical-align: top;
     border-bottom: 1px solid var(--article-border, #DCDCDC);
   }
 
-  .article-body :global(th) {
+  .article-body :global(table:not(.article-comparison__table) th) {
     color: var(--article-heading, #0E0E0E);
     font-weight: 700;
     border-top: 1px solid var(--article-border-strong, #BDBDBD);
     background: var(--article-th-bg, #EAEAEA);
   }
 
-  .article-body :global(tbody tr:last-child td) {
+  .article-body :global(table:not(.article-comparison__table) tbody tr:last-child td) {
     border-bottom-color: var(--article-border-strong, #BDBDBD);
   }
 
-  .article-body :global(td > :first-child),
-  .article-body :global(th > :first-child) {
+  .article-body :global(table:not(.article-comparison__table) td > :first-child),
+  .article-body :global(table:not(.article-comparison__table) th > :first-child) {
     margin-top: 0;
   }
 
-  .article-body :global(td > :last-child),
-  .article-body :global(th > :last-child) {
+  .article-body :global(table:not(.article-comparison__table) td > :last-child),
+  .article-body :global(table:not(.article-comparison__table) th > :last-child) {
     margin-bottom: 0;
   }
 
   @media (max-width: 640px) {
-    .article-body :global(table) {
+    .article-body :global(table:not(.article-comparison__table)) {
       display: block;
       overflow-x: auto;
       white-space: normal;

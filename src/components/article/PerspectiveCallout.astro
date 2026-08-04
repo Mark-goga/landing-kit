@@ -1,0 +1,55 @@
+---
+interface Props {
+  body: string;
+  heading?: string;
+}
+
+const { body, heading } = Astro.props;
+---
+
+<aside class="article-perspective" aria-label={heading ?? "Our perspective"}>
+  <div class="article-perspective__inner">
+    {heading && <p class="article-perspective__label">{heading}</p>}
+    <p class="article-perspective__body">{body}</p>
+  </div>
+</aside>
+
+<style is:global>
+  .article-perspective {
+    margin: 2.5rem 0;
+    padding: 0;
+    position: relative;
+  }
+
+  .article-perspective__inner {
+    padding: 1.25rem 1.5rem 1.25rem 2rem;
+    border-left: 3px solid var(--article-accent, #9377FF);
+    background: var(--article-callout-surface, var(--article-accent-tint, rgba(76, 39, 227, 0.06)));
+    border-radius: 0 8px 8px 0;
+  }
+
+  .article-perspective__label {
+    font-family: inherit;
+    font-size: 0.875rem;
+    letter-spacing: 0;
+    color: var(--article-heading, #0E0E0E);
+    margin-bottom: 0.55rem;
+    font-weight: 600;
+  }
+
+  .article-perspective__body {
+    font-size: 1.02rem;
+    line-height: 1.65;
+    color: var(--article-text, #1C1C1C);
+    margin: 0;
+  }
+
+  @media (max-width: 640px) {
+    .article-perspective__inner {
+      padding: 1rem 1.1rem 1rem 1.35rem;
+    }
+    .article-perspective__body {
+      font-size: 0.98rem;
+    }
+  }
+</style>

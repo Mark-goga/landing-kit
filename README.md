@@ -23,7 +23,7 @@ git submodule. Ships:
 - `src/scripts` — `sync-blog-content`, `assign-related-posts`,
   `pull-mindai-spec`, `fix-static-paths`.
 - `src/content.config.ts` — Astro Content Collections schema for the generated
-  blog corpus. Re-exported by each landing's own `src/content.config.ts`.
+  MDX blog corpus. Re-exported by each landing's own `src/content.config.ts`.
 - `src/config/site.ts` — env-driven `siteConfig`, tokens (`themeColor`,
   `trackingGlobal`, `googleFontsUrl`, favicons, OG image, etc.).
 - `src/styles/styles.css` — base landing styles. Landings override brand tokens
@@ -83,6 +83,18 @@ Everything brand-specific flows through `siteConfig` in `src/config/site.ts`:
 
 Landings can layer additional CSS variables in their own stylesheet without
 touching the kit.
+
+### Article component tokens
+
+The generated-blog MDX components use semantic article tokens only. A consumer
+can restyle all of them without editing kit markup:
+
+`--article-accent`, `--article-accent-hover`, `--article-accent-tint`,
+`--article-callout-surface`, `--article-border`, `--article-heading`,
+`--article-text`, `--article-text-secondary`, and `--article-text-muted`.
+
+The kit provides accessible light-mode fallbacks. Consumers should define the
+same token set for their dark theme when they support one.
 
 ## Auto-generated blog
 

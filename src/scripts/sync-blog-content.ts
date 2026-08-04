@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-// Sync backend-generated blog content into src/content/blog/generated/.
+// Sync backend-generated MDX blog content into src/content/blog/generated/.
 // All types + runtime schemas come from the Orval-generated content-publishing
 // client — this script owns only the deterministic file layout and I/O.
 // See README-publishing.md for the full flow.
@@ -96,7 +96,7 @@ const collectHeroUsage = async (managedRoot: string): Promise<Map<BlogHeroImage,
       continue;
     }
     for (const name of entries) {
-      if (!name.endsWith(".md")) continue;
+      if (!name.endsWith(".mdx") && !name.endsWith(".md")) continue;
       try {
         const parsed = parseMarkdown(await fs.readFile(path.join(dir, name), "utf8"));
         const hero = (parsed.data as Frontmatter | null)?.heroImage;
@@ -114,15 +114,17 @@ const selectHeroImage = async (
 ): Promise<BlogHeroImage | undefined> => {
   if (post.pageType === "video_summary") return undefined;
 
-  const existingPath = path.join(managedRoot, post.locale, `${post.slug}.md`);
-  try {
-    const existing = parseMarkdown(await fs.readFile(existingPath, "utf8"));
-    if (typeof existing.data === "object" && existing.data !== null) {
-      const heroImage = (existing.data as Frontmatter).heroImage;
-      if (isBlogHeroImage(heroImage)) return heroImage;
+  for (const extension of [".mdx", ".md"]) {
+    const existingPath = path.join(managedRoot, post.locale, `${post.slug}${extension}`);
+    try {
+      const existing = parseMarkdown(await fs.readFile(existingPath, "utf8"));
+      if (typeof existing.data === "object" && existing.data !== null) {
+        const heroImage = (existing.data as Frontmatter).heroImage;
+        if (isBlogHeroImage(heroImage)) return heroImage;
+      }
+    } catch (error: unknown) {
+      if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") throw error;
     }
-  } catch (error: unknown) {
-    if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") throw error;
   }
 
   const minCount = Math.min(...BLOG_HERO_IMAGES.map((h) => usage.get(h) ?? 0));
@@ -253,7 +255,7 @@ const main = async (): Promise<void> => {
   const written: WrittenPost[] = [];
   const heroUsage = await collectHeroUsage(managedRoot);
   for (const post of posts) {
-    const rel = path.join(post.locale, `${post.slug}.md`);
+    const rel = path.join(post.locale, `${post.slug}.mdx`);
     const dest = path.join(tmpRoot, rel);
     if (!dest.startsWith(`${tmpRoot}${path.sep}`)) {
       throw new Error(`Serialized path escaped managed root: ${dest}`);
@@ -276,7 +278,7 @@ const main = async (): Promise<void> => {
     draftId: p.draftId,
     locale: p.locale,
     slug: p.slug,
-    path: `${relRepoRoot}/${p.locale}/${p.slug}.md`.replace(/\\/g, "/"),
+    path: `${relRepoRoot}/${p.locale}/${p.slug}.mdx`.replace(/\\/g, "/"),
     includedInRebuild: p.includedInRebuild,
   }));
   const manifest = {
