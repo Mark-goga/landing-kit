@@ -116,7 +116,10 @@ jobs:
           # DB-managed content root + auto-generated OG covers are the only
           # bot-owned paths. Everything else (dynamic routes, brand copy, kit)
           # is human-authored and must ship via a normal PR.
-          git add "$MANAGED_ROOT" public/assets/covers
+          # blog-static is human-authored prose, but its `relatedPosts` block is
+          # rewritten by assign-related-posts against the new corpus; leaving it
+          # behind would let those articles keep links to removed posts.
+          git add "$MANAGED_ROOT" public/assets/covers src/content/blog-static
           if git diff --cached --quiet; then
             echo "No content changes to commit."
             echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"

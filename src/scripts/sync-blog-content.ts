@@ -16,6 +16,7 @@ import type { ContentBuildExportDto } from "../api/generated/model";
 import { rebuildControllerExportResponse } from "../api/generated/content-publishing.zod";
 import { createContentPublishingRequestInit } from "../api/content-publishing-fetch";
 import { BLOG_HERO_IMAGES, isBlogHeroImage, type BlogHeroImage } from "@site/content/blog-hero-images";
+import { relatedPostSchema } from "../content/blog-presentation";
 
 type BuildPost = ContentBuildExportDto["posts"][number];
 
@@ -107,25 +108,31 @@ const collectHeroUsage = async (managedRoot: string): Promise<Map<BlogHeroImage,
   return usage;
 };
 
-const selectHeroImage = async (
-  post: BuildPost,
+// A post is rewritten from scratch on every rebuild, so anything the landing
+// owns has to be read back out of the file it is about to replace.
+const readExistingFrontmatter = async (
   managedRoot: string,
-  usage: Map<BlogHeroImage, number>,
-): Promise<BlogHeroImage | undefined> => {
-  if (post.pageType === "video_summary") return undefined;
-
+  post: BuildPost,
+): Promise<Frontmatter | undefined> => {
   for (const extension of [".mdx", ".md"]) {
     const existingPath = path.join(managedRoot, post.locale, `${post.slug}${extension}`);
     try {
       const existing = parseMarkdown(await fs.readFile(existingPath, "utf8"));
-      if (typeof existing.data === "object" && existing.data !== null) {
-        const heroImage = (existing.data as Frontmatter).heroImage;
-        if (isBlogHeroImage(heroImage)) return heroImage;
-      }
+      if (typeof existing.data === "object" && existing.data !== null) return existing.data as Frontmatter;
     } catch (error: unknown) {
       if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") throw error;
     }
   }
+  return undefined;
+};
+
+const selectHeroImage = (
+  post: BuildPost,
+  existing: Frontmatter | undefined,
+  usage: Map<BlogHeroImage, number>,
+): BlogHeroImage | undefined => {
+  if (post.pageType === "video_summary") return undefined;
+  if (isBlogHeroImage(existing?.heroImage)) return existing.heroImage;
 
   const minCount = Math.min(...BLOG_HERO_IMAGES.map((h) => usage.get(h) ?? 0));
   const candidates = BLOG_HERO_IMAGES.filter((h) => (usage.get(h) ?? 0) === minCount);
@@ -134,9 +141,21 @@ const selectHeroImage = async (
   return picked;
 };
 
+// "Read next" links are sticky the same way the hero image is: assign-related-
+// posts picks them once and never re-picks. Dropping them here would hand that
+// script a blank slate on every rebuild and silently reshuffle every article's
+// recommendations. Stale entries are not this script's problem — the assignment
+// step runs next and prunes links whose target is gone.
+const carryOverRelatedPosts = (existing: Frontmatter | undefined): unknown[] | undefined => {
+  if (!Array.isArray(existing?.relatedPosts)) return undefined;
+  const kept = existing.relatedPosts.filter((entry) => relatedPostSchema.safeParse(entry).success);
+  return kept.length > 0 ? kept : undefined;
+};
+
 const orderedFrontmatter = (
   post: BuildPost,
   heroImage?: BlogHeroImage,
+  relatedPosts?: unknown[],
 ): Frontmatter => {
   const base: Frontmatter = {
     schemaVersion: 1,
@@ -155,6 +174,7 @@ const orderedFrontmatter = (
     sources: post.sources,
   };
   if (heroImage) base.heroImage = heroImage;
+  if (relatedPosts) base.relatedPosts = relatedPosts;
   if (post.pageType === "comparison") base.compared = post.compared;
   if (post.pageType === "video_summary") base.videoUrl = post.videoUrl;
   if (post.pageType === "template") {
@@ -168,8 +188,8 @@ const orderedFrontmatter = (
   return ordered;
 };
 
-const serializePost = (post: BuildPost, heroImage?: BlogHeroImage): string => {
-  const yaml = YAML.stringify(orderedFrontmatter(post, heroImage), {
+const serializePost = (post: BuildPost, heroImage?: BlogHeroImage, relatedPosts?: unknown[]): string => {
+  const yaml = YAML.stringify(orderedFrontmatter(post, heroImage, relatedPosts), {
     defaultStringType: "QUOTE_DOUBLE",
     defaultKeyType: "PLAIN",
     lineWidth: 0,
@@ -261,8 +281,9 @@ const main = async (): Promise<void> => {
       throw new Error(`Serialized path escaped managed root: ${dest}`);
     }
     await fs.mkdir(path.dirname(dest), { recursive: true });
-    const heroImage = await selectHeroImage(post, managedRoot, heroUsage);
-    const serialized = serializePost(post, heroImage);
+    const existing = await readExistingFrontmatter(managedRoot, post);
+    const heroImage = selectHeroImage(post, existing, heroUsage);
+    const serialized = serializePost(post, heroImage, carryOverRelatedPosts(existing));
     await fs.writeFile(dest, serialized, { encoding: "utf8" });
     parseMarkdown(serialized);
     written.push({

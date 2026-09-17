@@ -7,6 +7,7 @@ import { spawn } from "node:child_process";
 import http from "node:http";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import YAML from "yaml";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT_PATH = path.join(__dirname, "sync-blog-content.ts");
@@ -229,6 +230,48 @@ describe("sync-blog-content", () => {
     assert.equal(result.code, 0, `stderr=${result.stderr}`);
     const second = await fs.readFile(imagePath, "utf8");
     assert.match(second, new RegExp(`heroImage: "${firstImage}"`, "u"));
+  });
+
+  it("carries the assigned related posts through a rebuild", async () => {
+    setResponse(buildExport(buildPost({ draftId: DRAFT_ID_B, slug: "sticky-links" })));
+    let result = await invoke();
+    assert.equal(result.code, 0, `stderr=${result.stderr}`);
+
+    // Stand in for assign-related-posts: the landing owns this block, and a
+    // rebuild must hand it back untouched instead of starting from a blank slate.
+    const target = path.join(managedRoot, "en", "sticky-links.mdx");
+    const assigned = [
+      {
+        href: "/blog/active-recall/",
+        title: "Editorial card title",
+        metaDescription: "Editorial card copy that must survive a rebuild.",
+        heroImage: "/assets/card-2.png",
+      },
+    ];
+    const source = await fs.readFile(target, "utf8");
+    const end = source.indexOf("\n---\n", 4);
+    const data = YAML.parse(source.slice(4, end));
+    data.relatedPosts = assigned;
+    await fs.writeFile(target, `---\n${YAML.stringify(data)}---\n${source.slice(end + 5)}`, "utf8");
+
+    result = await invoke();
+    assert.equal(result.code, 0, `stderr=${result.stderr}`);
+    const after = await fs.readFile(target, "utf8");
+    const afterData = YAML.parse(after.slice(4, after.indexOf("\n---\n", 4)));
+    assert.deepEqual(afterData.relatedPosts, assigned, "the stored recommendations must survive verbatim");
+    const keys = Object.keys(afterData);
+    assert.ok(
+      keys.indexOf("relatedPosts") > keys.indexOf("heroImage"),
+      "relatedPosts must keep its canonical slot after heroImage",
+    );
+  });
+
+  it("does not invent related posts for an article that has none", async () => {
+    setResponse(buildExport(buildPost({ draftId: DRAFT_ID_C, slug: "no-links-yet" })));
+    const result = await invoke();
+    assert.equal(result.code, 0, `stderr=${result.stderr}`);
+    const serialized = await fs.readFile(path.join(managedRoot, "en", "no-links-yet.mdx"), "utf8");
+    assert.doesNotMatch(serialized, /relatedPosts:/u);
   });
 
   it("does not assign a landing image to a video summary", async () => {
