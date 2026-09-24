@@ -14,6 +14,9 @@ import type { ContentSourceResponseDtoTranscriptErrorCode } from './contentSourc
 import type { ContentSourceResponseDtoTranscriptErrorMessage } from './contentSourceResponseDtoTranscriptErrorMessage';
 import type { ContentSourceResponseDtoTranscriptErrorAt } from './contentSourceResponseDtoTranscriptErrorAt';
 import type { ContentSourceResponseDtoTranscriptLastRetryAt } from './contentSourceResponseDtoTranscriptLastRetryAt';
+import type { ContentSourceResponseDtoEmbedding } from './contentSourceResponseDtoEmbedding';
+import type { ContentSourceResponseDtoDurationSeconds } from './contentSourceResponseDtoDurationSeconds';
+import type { ContentSourceResponseDtoCoreConcepts } from './contentSourceResponseDtoCoreConcepts';
 
 export interface ContentSourceResponseDto {
   /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
@@ -39,4 +42,7 @@ export interface ContentSourceResponseDto {
    */
   transcriptRetryCount: number;
   transcriptLastRetryAt: ContentSourceResponseDtoTranscriptLastRetryAt;
+  embedding: ContentSourceResponseDtoEmbedding;
+  durationSeconds: ContentSourceResponseDtoDurationSeconds;
+  coreConcepts: ContentSourceResponseDtoCoreConcepts;
 }

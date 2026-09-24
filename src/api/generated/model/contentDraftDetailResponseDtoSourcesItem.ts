@@ -14,6 +14,9 @@ import type { ContentDraftDetailResponseDtoSourcesItemTranscriptErrorCode } from
 import type { ContentDraftDetailResponseDtoSourcesItemTranscriptErrorMessage } from './contentDraftDetailResponseDtoSourcesItemTranscriptErrorMessage';
 import type { ContentDraftDetailResponseDtoSourcesItemTranscriptErrorAt } from './contentDraftDetailResponseDtoSourcesItemTranscriptErrorAt';
 import type { ContentDraftDetailResponseDtoSourcesItemTranscriptLastRetryAt } from './contentDraftDetailResponseDtoSourcesItemTranscriptLastRetryAt';
+import type { ContentDraftDetailResponseDtoSourcesItemEmbedding } from './contentDraftDetailResponseDtoSourcesItemEmbedding';
+import type { ContentDraftDetailResponseDtoSourcesItemDurationSeconds } from './contentDraftDetailResponseDtoSourcesItemDurationSeconds';
+import type { ContentDraftDetailResponseDtoSourcesItemCoreConcepts } from './contentDraftDetailResponseDtoSourcesItemCoreConcepts';
 
 export type ContentDraftDetailResponseDtoSourcesItem = {
   /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
@@ -39,4 +42,7 @@ export type ContentDraftDetailResponseDtoSourcesItem = {
    */
   transcriptRetryCount: number;
   transcriptLastRetryAt: ContentDraftDetailResponseDtoSourcesItemTranscriptLastRetryAt;
+  embedding: ContentDraftDetailResponseDtoSourcesItemEmbedding;
+  durationSeconds: ContentDraftDetailResponseDtoSourcesItemDurationSeconds;
+  coreConcepts: ContentDraftDetailResponseDtoSourcesItemCoreConcepts;
 };

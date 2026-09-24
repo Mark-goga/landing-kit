@@ -8,9 +8,11 @@
 import type { AuthResponseDtoUser } from './authResponseDtoUser';
 import type { AuthResponseDtoSession } from './authResponseDtoSession';
 import type { AuthResponseDtoTokens } from './authResponseDtoTokens';
+import type { AuthResponseDtoEntitlements } from './authResponseDtoEntitlements';
 
 export interface AuthResponseDto {
   user: AuthResponseDtoUser;
   session: AuthResponseDtoSession;
   tokens: AuthResponseDtoTokens;
+  entitlements: AuthResponseDtoEntitlements;
 }

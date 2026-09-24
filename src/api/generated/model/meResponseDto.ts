@@ -7,8 +7,10 @@
  */
 import type { MeResponseDtoUser } from './meResponseDtoUser';
 import type { MeResponseDtoSession } from './meResponseDtoSession';
+import type { MeResponseDtoEntitlements } from './meResponseDtoEntitlements';
 
 export interface MeResponseDto {
   user: MeResponseDtoUser;
   session: MeResponseDtoSession;
+  entitlements: MeResponseDtoEntitlements;
 }

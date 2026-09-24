@@ -21,4 +21,9 @@ export interface UpdateKeywordClusterDto {
   searchIntent?: string;
   status?: UpdateKeywordClusterDtoStatus;
   notes?: string;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  priority?: number;
 }

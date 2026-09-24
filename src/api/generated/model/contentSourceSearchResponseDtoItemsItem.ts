@@ -14,6 +14,9 @@ import type { ContentSourceSearchResponseDtoItemsItemTranscriptErrorCode } from 
 import type { ContentSourceSearchResponseDtoItemsItemTranscriptErrorMessage } from './contentSourceSearchResponseDtoItemsItemTranscriptErrorMessage';
 import type { ContentSourceSearchResponseDtoItemsItemTranscriptErrorAt } from './contentSourceSearchResponseDtoItemsItemTranscriptErrorAt';
 import type { ContentSourceSearchResponseDtoItemsItemTranscriptLastRetryAt } from './contentSourceSearchResponseDtoItemsItemTranscriptLastRetryAt';
+import type { ContentSourceSearchResponseDtoItemsItemEmbedding } from './contentSourceSearchResponseDtoItemsItemEmbedding';
+import type { ContentSourceSearchResponseDtoItemsItemDurationSeconds } from './contentSourceSearchResponseDtoItemsItemDurationSeconds';
+import type { ContentSourceSearchResponseDtoItemsItemCoreConcepts } from './contentSourceSearchResponseDtoItemsItemCoreConcepts';
 
 export type ContentSourceSearchResponseDtoItemsItem = {
   /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
@@ -39,4 +42,7 @@ export type ContentSourceSearchResponseDtoItemsItem = {
    */
   transcriptRetryCount: number;
   transcriptLastRetryAt: ContentSourceSearchResponseDtoItemsItemTranscriptLastRetryAt;
+  embedding: ContentSourceSearchResponseDtoItemsItemEmbedding;
+  durationSeconds: ContentSourceSearchResponseDtoItemsItemDurationSeconds;
+  coreConcepts: ContentSourceSearchResponseDtoItemsItemCoreConcepts;
 };

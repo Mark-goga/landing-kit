@@ -10,6 +10,9 @@ export type ContentPipelineDryRunSourceResponseDtoStages = {
   transcribed: boolean;
   extracted: boolean;
   planned: boolean;
+  evidencePlanned: boolean;
+  evidenceResearched: boolean;
   drafted: boolean;
   validated: boolean;
+  qualityReviewed: boolean;
 };

@@ -17,4 +17,5 @@ export const AiBenchmarkResponseDtoUseCase = {
   review_item: 'review_item',
   next_learning_suggestion: 'next_learning_suggestion',
   social_lead_scoring: 'social_lead_scoring',
+  content_seo_pipeline: 'content_seo_pipeline',
 } as const;

@@ -5,5 +5,23 @@
  * template-nest
  * OpenAPI spec version: 1.0
  */
+import type { ContentSourceSearchResponseDtoItemsItemMetadataFetchError } from './contentSourceSearchResponseDtoItemsItemMetadataFetchError';
+import type { ContentSourceSearchResponseDtoItemsItemMetadataFetchErrorAt } from './contentSourceSearchResponseDtoItemsItemMetadataFetchErrorAt';
 
-export type ContentSourceSearchResponseDtoItemsItemMetadata = {[key: string]: unknown};
+export type ContentSourceSearchResponseDtoItemsItemMetadata = {
+  creator?: string;
+  publishedAt?: string;
+  thumbnail?: string;
+  clusterHint?: string;
+  rejectedClusterIds?: string[];
+  discoveredVia?: string;
+  discoveryClusterId?: string;
+  parentSourceId?: string;
+  duration?: number;
+  body?: string;
+  audioUrl?: string;
+  fetchError?: ContentSourceSearchResponseDtoItemsItemMetadataFetchError;
+  fetchErrorAt?: ContentSourceSearchResponseDtoItemsItemMetadataFetchErrorAt;
+  fetchErrorCount?: number;
+  [key: string]: unknown;
+};

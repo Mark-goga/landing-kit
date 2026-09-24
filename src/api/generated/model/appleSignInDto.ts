@@ -26,6 +26,8 @@ export interface AppleSignInDto {
   firebaseToken?: AppleSignInDtoFirebaseToken;
   /** @minLength 1 */
   idToken: string;
+  /** @minLength 1 */
+  authorizationCode: string;
   firstName?: AppleSignInDtoFirstName;
   lastName?: AppleSignInDtoLastName;
 }

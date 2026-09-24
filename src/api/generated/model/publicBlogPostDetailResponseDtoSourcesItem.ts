@@ -14,6 +14,9 @@ import type { PublicBlogPostDetailResponseDtoSourcesItemTranscriptErrorCode } fr
 import type { PublicBlogPostDetailResponseDtoSourcesItemTranscriptErrorMessage } from './publicBlogPostDetailResponseDtoSourcesItemTranscriptErrorMessage';
 import type { PublicBlogPostDetailResponseDtoSourcesItemTranscriptErrorAt } from './publicBlogPostDetailResponseDtoSourcesItemTranscriptErrorAt';
 import type { PublicBlogPostDetailResponseDtoSourcesItemTranscriptLastRetryAt } from './publicBlogPostDetailResponseDtoSourcesItemTranscriptLastRetryAt';
+import type { PublicBlogPostDetailResponseDtoSourcesItemEmbedding } from './publicBlogPostDetailResponseDtoSourcesItemEmbedding';
+import type { PublicBlogPostDetailResponseDtoSourcesItemDurationSeconds } from './publicBlogPostDetailResponseDtoSourcesItemDurationSeconds';
+import type { PublicBlogPostDetailResponseDtoSourcesItemCoreConcepts } from './publicBlogPostDetailResponseDtoSourcesItemCoreConcepts';
 
 export type PublicBlogPostDetailResponseDtoSourcesItem = {
   /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
@@ -39,4 +42,7 @@ export type PublicBlogPostDetailResponseDtoSourcesItem = {
    */
   transcriptRetryCount: number;
   transcriptLastRetryAt: PublicBlogPostDetailResponseDtoSourcesItemTranscriptLastRetryAt;
+  embedding: PublicBlogPostDetailResponseDtoSourcesItemEmbedding;
+  durationSeconds: PublicBlogPostDetailResponseDtoSourcesItemDurationSeconds;
+  coreConcepts: PublicBlogPostDetailResponseDtoSourcesItemCoreConcepts;
 };

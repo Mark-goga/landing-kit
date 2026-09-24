@@ -14,6 +14,9 @@ import type { ContentPipelineSearchResponseDtoItemsItemSourcesItemTranscriptErro
 import type { ContentPipelineSearchResponseDtoItemsItemSourcesItemTranscriptErrorMessage } from './contentPipelineSearchResponseDtoItemsItemSourcesItemTranscriptErrorMessage';
 import type { ContentPipelineSearchResponseDtoItemsItemSourcesItemTranscriptErrorAt } from './contentPipelineSearchResponseDtoItemsItemSourcesItemTranscriptErrorAt';
 import type { ContentPipelineSearchResponseDtoItemsItemSourcesItemTranscriptLastRetryAt } from './contentPipelineSearchResponseDtoItemsItemSourcesItemTranscriptLastRetryAt';
+import type { ContentPipelineSearchResponseDtoItemsItemSourcesItemEmbedding } from './contentPipelineSearchResponseDtoItemsItemSourcesItemEmbedding';
+import type { ContentPipelineSearchResponseDtoItemsItemSourcesItemDurationSeconds } from './contentPipelineSearchResponseDtoItemsItemSourcesItemDurationSeconds';
+import type { ContentPipelineSearchResponseDtoItemsItemSourcesItemCoreConcepts } from './contentPipelineSearchResponseDtoItemsItemSourcesItemCoreConcepts';
 
 export type ContentPipelineSearchResponseDtoItemsItemSourcesItem = {
   /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */
@@ -39,4 +42,7 @@ export type ContentPipelineSearchResponseDtoItemsItemSourcesItem = {
    */
   transcriptRetryCount: number;
   transcriptLastRetryAt: ContentPipelineSearchResponseDtoItemsItemSourcesItemTranscriptLastRetryAt;
+  embedding: ContentPipelineSearchResponseDtoItemsItemSourcesItemEmbedding;
+  durationSeconds: ContentPipelineSearchResponseDtoItemsItemSourcesItemDurationSeconds;
+  coreConcepts: ContentPipelineSearchResponseDtoItemsItemSourcesItemCoreConcepts;
 };

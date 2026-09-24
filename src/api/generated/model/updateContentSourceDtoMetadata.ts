@@ -5,5 +5,23 @@
  * template-nest
  * OpenAPI spec version: 1.0
  */
+import type { UpdateContentSourceDtoMetadataFetchError } from './updateContentSourceDtoMetadataFetchError';
+import type { UpdateContentSourceDtoMetadataFetchErrorAt } from './updateContentSourceDtoMetadataFetchErrorAt';
 
-export type UpdateContentSourceDtoMetadata = {[key: string]: unknown};
+export type UpdateContentSourceDtoMetadata = {
+  creator?: string;
+  publishedAt?: string;
+  thumbnail?: string;
+  clusterHint?: string;
+  rejectedClusterIds?: string[];
+  discoveredVia?: string;
+  discoveryClusterId?: string;
+  parentSourceId?: string;
+  duration?: number;
+  body?: string;
+  audioUrl?: string;
+  fetchError?: UpdateContentSourceDtoMetadataFetchError;
+  fetchErrorAt?: UpdateContentSourceDtoMetadataFetchErrorAt;
+  fetchErrorCount?: number;
+  [key: string]: unknown;
+};
