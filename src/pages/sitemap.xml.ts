@@ -1,6 +1,7 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 import { absoluteUrl, siteConfig, supportedLocales, xDefaultPath, type LocaleKey } from "../config/site";
 import { HUMAN_BLOG_SLUGS } from "@site/config/generated-blog-collision";
+import { SUPPORT_PATH } from "../lib/support";
 
 const localePath = (l: LocaleKey, slug: string): string =>
   l === "en" ? `/blog/${slug}/` : `/${l}/blog/${slug}/`;
@@ -62,7 +63,7 @@ ${landingHeroImageBlock}
   )
   .join("\n");
 
-const standaloneUrls = ["/privacy/", "/cookies/"]
+const standaloneUrls = ["/privacy/", "/cookies/", SUPPORT_PATH]
   .map(
     (path) => `  <url>
     <loc>${absoluteUrl(path)}</loc>

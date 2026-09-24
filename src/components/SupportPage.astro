@@ -1,0 +1,541 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import Header from "./Header.astro";
+import Footer from "./Footer.astro";
+import { siteConfig } from "../config/site";
+import { landingContent, landingLanguageNav } from "@site/data/locales";
+import { SUPPORT_PATH, supportCopy, type SupportCategory } from "../lib/support";
+
+interface Props {
+  supportEmail: string;
+  subscriptions?: boolean;
+  deleteAccountPath?: string;
+}
+
+const { supportEmail, subscriptions = false, deleteAccountPath } = Astro.props;
+const content = landingContent.en;
+const copy = supportCopy;
+const appName = siteConfig.name;
+const fill = (text: string) => text.replaceAll("{app}", appName);
+
+const categories: SupportCategory[] = ["question", "bug", "account", "feature_request", "other"];
+
+type FaqItem = { question: string; answer: string; href?: string; linkLabel?: string };
+
+const faq: FaqItem[] = [
+  ...(subscriptions
+    ? [
+        { question: copy.faq.cancel.question, answer: fill(copy.faq.cancel.answer) },
+        { question: copy.faq.restore.question, answer: fill(copy.faq.restore.answer) },
+      ]
+    : []),
+  ...(deleteAccountPath
+    ? [
+        {
+          question: copy.faq.deleteAccount.question,
+          answer: fill(copy.faq.deleteAccount.answer),
+          href: deleteAccountPath,
+          linkLabel: copy.faq.deleteAccount.linkLabel,
+        },
+      ]
+    : []),
+  {
+    question: copy.faq.privacy.question,
+    answer: fill(copy.faq.privacy.answer),
+    href: "/privacy/",
+    linkLabel: copy.faq.privacy.linkLabel,
+  },
+];
+---
+
+<PageLayout
+  title={`${copy.eyebrow} — ${appName}`}
+  description={fill(copy.metaDescription)}
+  canonicalPath={SUPPORT_PATH}
+  routePath={SUPPORT_PATH}
+  lang="en"
+>
+  <Header content={content} routePath={SUPPORT_PATH} languageNav={landingLanguageNav()} />
+  <main class="support-page">
+    <div class="support-hero">
+      <span class="support-eyebrow">{copy.eyebrow}</span>
+      <h1>{copy.title}</h1>
+      <p>{fill(copy.lead)}</p>
+    </div>
+
+    <div class="support-grid">
+      <form class="support-card support-form" data-support-form novalidate>
+        <h2>{copy.form.title}</h2>
+        <div class="support-row">
+          <label class="support-field">
+            <span>{copy.form.email}</span>
+            <input type="email" name="contactEmail" required autocomplete="email" maxlength="255" placeholder="you@example.com" />
+          </label>
+          <label class="support-field">
+            <span>{copy.form.category}</span>
+            <select name="category">
+              {categories.map((category) => <option value={category}>{copy.categories[category]}</option>)}
+            </select>
+          </label>
+        </div>
+        <label class="support-field">
+          <span>{copy.form.subject}</span>
+          <input type="text" name="title" required maxlength="255" />
+        </label>
+        <label class="support-field">
+          <span>{copy.form.message}</span>
+          <textarea name="description" required rows="7" maxlength="5000"></textarea>
+        </label>
+        <label class="support-trap" aria-hidden="true">
+          <span>Company</span>
+          <input type="text" name="company" tabindex="-1" autocomplete="off" />
+        </label>
+        {
+          siteConfig.turnstileSiteKey && (
+            <div
+              class="cf-turnstile"
+              data-sitekey={siteConfig.turnstileSiteKey}
+              data-appearance="interaction-only"
+              data-size="flexible"
+            />
+          )
+        }
+        <div class="support-actions">
+          <button type="submit">{copy.form.submit}</button>
+          <p class="support-status" data-support-status role="status" aria-live="polite" hidden></p>
+        </div>
+      </form>
+
+      <aside class="support-aside">
+        <div class="support-card support-contact">
+          <span class="support-contact-label">{copy.emailLabel}</span>
+          <a class="support-contact-email" href={`mailto:${supportEmail}`}>{supportEmail}</a>
+          <span class="support-contact-note">{copy.emailNote}</span>
+        </div>
+
+        <section class="support-faq" aria-labelledby="support-faq-title">
+          <h2 id="support-faq-title">{copy.faqTitle}</h2>
+          {
+            faq.map((item) => (
+              <details class="support-faq-item">
+                <summary>{item.question}</summary>
+                <p>
+                  {item.answer}
+                  {item.href && (
+                    <>
+                      {" "}
+                      <a href={item.href}>{item.linkLabel}</a>
+                    </>
+                  )}
+                </p>
+              </details>
+            ))
+          }
+        </section>
+      </aside>
+    </div>
+  </main>
+  <Footer content={content} routePath={SUPPORT_PATH} />
+</PageLayout>
+
+<script
+  define:vars={{
+    requestUrl: `${siteConfig.leadsApiUrl}/support/web`,
+    applicationId: siteConfig.applicationId,
+    turnstileEnabled: Boolean(siteConfig.turnstileSiteKey),
+    messages: {
+      sent: copy.form.sent,
+      error: copy.form.error,
+      invalid: copy.form.invalid,
+      captcha: copy.form.captcha,
+    },
+  }}
+>
+  (() => {
+    const form = document.querySelector("[data-support-form]");
+    const statusEl = document.querySelector("[data-support-status]");
+    if (!form) return;
+
+    const field = (name) => form.elements.namedItem(name);
+
+    const showStatus = (message, isError) => {
+      statusEl.textContent = message;
+      statusEl.classList.toggle("support-status--error", Boolean(isError));
+      statusEl.hidden = false;
+    };
+
+    const turnstileToken = () => {
+      const input = form.querySelector('[name="cf-turnstile-response"]');
+      return input ? input.value : "";
+    };
+
+    const resetTurnstile = () => {
+      if (!turnstileEnabled || typeof window.turnstile === "undefined") return;
+      const widget = form.querySelector(".cf-turnstile");
+      if (widget) window.turnstile.reset(widget);
+    };
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = form.querySelector('button[type="submit"]');
+      const invalid = ["contactEmail", "title", "description"]
+        .map(field)
+        .find((input) => !input.value.trim() || !input.checkValidity());
+      if (invalid) {
+        invalid.reportValidity();
+        showStatus(messages.invalid, true);
+        return;
+      }
+
+      if (field("company").value) {
+        form.reset();
+        showStatus(messages.sent, false);
+        return;
+      }
+
+      const token = turnstileEnabled ? turnstileToken() : "";
+      if (turnstileEnabled && !token) {
+        showStatus(messages.captcha, true);
+        return;
+      }
+
+      button.disabled = true;
+      form.setAttribute("aria-busy", "true");
+      try {
+        const response = await fetch(requestUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            applicationId,
+            contactEmail: field("contactEmail").value.trim(),
+            category: field("category").value,
+            title: field("title").value.trim(),
+            description: field("description").value.trim(),
+            metadata: { source: "website", page: window.location.pathname, userAgent: navigator.userAgent },
+            ...(token ? { turnstileToken: token } : {}),
+          }),
+        });
+        if (!response.ok) throw new Error("Request failed with status " + response.status);
+        form.reset();
+        showStatus(messages.sent, false);
+      } catch (error) {
+        showStatus(messages.error, true);
+      } finally {
+        resetTurnstile();
+        button.disabled = false;
+        form.removeAttribute("aria-busy");
+      }
+    });
+  })();
+</script>
+
+<style>
+  .support-page {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 148px 24px 112px;
+    font-family: "Roboto Flex", sans-serif;
+    color: var(--article-text, #1c1c1c);
+  }
+
+  .support-hero {
+    max-width: 720px;
+    margin: 0 auto 56px;
+    text-align: center;
+  }
+
+  .support-eyebrow {
+    display: inline-block;
+    margin-bottom: 16px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--article-accent-tint, rgba(76, 39, 227, 0.08));
+    color: var(--article-accent, #4c27e3);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .support-hero h1 {
+    margin: 0 0 16px;
+    font-size: clamp(36px, 4.5vw, 48px);
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--article-heading, #0e0e0e);
+  }
+
+  .support-hero p {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--article-text-secondary, #4a4a4a);
+  }
+
+  .support-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .support-card {
+    box-sizing: border-box;
+    padding: 32px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 7.5px rgba(8, 3, 27, 0.08);
+    outline: 1px solid #ffffff;
+    outline-offset: -1px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  :global(html[data-theme="dark"]) .support-card {
+    background: rgba(255, 255, 255, 0.04);
+    outline-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  }
+
+  .support-page h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--article-heading, #0e0e0e);
+  }
+
+  .support-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .support-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .support-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--article-heading, #0e0e0e);
+  }
+
+  .support-field input,
+  .support-field select,
+  .support-field textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 13px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(8, 3, 27, 0.1);
+    background: #ffffff;
+    color: var(--article-text, #1c1c1c);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.4;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  :global(html[data-theme="dark"]) .support-field input,
+  :global(html[data-theme="dark"]) .support-field select,
+  :global(html[data-theme="dark"]) .support-field textarea {
+    border-color: var(--article-border-strong, rgba(255, 255, 255, 0.15));
+    background: var(--article-input-bg, rgba(255, 255, 255, 0.04));
+  }
+
+  .support-field select {
+    appearance: none;
+    padding-right: 44px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5l5-5' stroke='%23707070' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    cursor: pointer;
+  }
+
+  .support-field textarea {
+    min-height: 168px;
+    resize: vertical;
+  }
+
+  .support-field input::placeholder {
+    color: var(--article-text-muted, #8a8a8a);
+  }
+
+  .support-field input:focus,
+  .support-field select:focus,
+  .support-field textarea:focus {
+    outline: none;
+    border-color: var(--article-accent, #4c27e3);
+    box-shadow: 0 0 0 3px var(--article-accent-tint, rgba(76, 39, 227, 0.15));
+  }
+
+  .support-trap {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .support-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .support-actions button {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 12px;
+    background: var(--article-accent, #4c27e3);
+    color: #ffffff;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .support-actions button:hover {
+    background: color-mix(in srgb, var(--article-accent, #4c27e3) 85%, black);
+  }
+
+  .support-actions button:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+
+  .support-status {
+    flex: 1 1 220px;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--article-text, #1c1c1c);
+  }
+
+  .support-status[hidden] {
+    display: none;
+  }
+
+  .support-status--error {
+    color: #c0392b;
+  }
+
+  .support-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .support-contact {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .support-contact-label,
+  .support-contact-note {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--article-text-muted, #707070);
+  }
+
+  .support-contact-email {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--article-accent, #4c27e3);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+
+  .support-contact-email:hover {
+    text-decoration: underline;
+  }
+
+  .support-faq h2 {
+    margin-bottom: 8px;
+  }
+
+  .support-faq-item {
+    border-bottom: 1px solid var(--article-border, rgba(8, 3, 27, 0.1));
+  }
+
+  .support-faq-item summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 0;
+    list-style: none;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--article-heading, #0e0e0e);
+    cursor: pointer;
+  }
+
+  .support-faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .support-faq-item summary::after {
+    content: "+";
+    flex-shrink: 0;
+    font-size: 22px;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--article-text-muted, #707070);
+  }
+
+  .support-faq-item[open] summary::after {
+    content: "−";
+  }
+
+  .support-faq-item p {
+    margin: 0 0 16px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--article-text, #1c1c1c);
+  }
+
+  .support-faq-item a {
+    color: var(--article-accent, #4c27e3);
+    text-underline-offset: 3px;
+  }
+
+  @media (max-width: 900px) {
+    .support-page {
+      padding: 120px 20px 80px;
+    }
+
+    .support-hero {
+      margin-bottom: 40px;
+    }
+
+    .support-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .support-card {
+      padding: 22px 18px;
+    }
+
+    .support-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .support-actions button {
+      width: 100%;
+    }
+  }
+</style>

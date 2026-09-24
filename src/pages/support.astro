@@ -1,0 +1,10 @@
+---
+import SupportPage from "../components/SupportPage.astro";
+
+interface Props {
+  supportEmail: string;
+  subscriptions?: boolean;
+  deleteAccountPath?: string;
+}
+---
+<SupportPage {...Astro.props} />
