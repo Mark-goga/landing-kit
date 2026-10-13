@@ -108,16 +108,32 @@ const resolveHeaderHref = (href: string) => (href.startsWith("#") && href.length
     }
   </script>
 
+  <!-- Full-screen menu (tablet/mobile): links, theme switch, and the two hero actions
+       pinned to the bottom. -->
   <nav class="mobile-nav" id="mobileNav">
-    {content.header.nav.map((link) => <a href={resolveHeaderHref(link.href)} class="nav-link">{link.label}</a>)}
-    <button
-      type="button"
-      class="btn-secondary"
-      data-clarity-event={content.header.cta.clarityEvent}
-      data-modal-open
-      data-from="header-cta"
-    >
-      {content.header.cta.label}
-    </button>
+    <div class="mobile-nav-links">
+      {content.header.nav.map((link) => <a href={resolveHeaderHref(link.href)} class="nav-link">{link.label}</a>)}
+    </div>
+    <div class="mobile-nav-theme">
+      <ThemeToggle />
+    </div>
+    <div class="mobile-nav-actions">
+      <button
+        type="button"
+        class="btn-primary"
+        data-clarity-event={content.hero.primaryCta.clarityEvent}
+        data-modal-open
+        data-from="mobile-menu"
+      >
+        {content.hero.primaryCta.label}
+      </button>
+      <a
+        href={resolveHeaderHref(content.hero.secondaryCta.href)}
+        class="btn-secondary"
+        data-clarity-event={content.hero.secondaryCta.clarityEvent}
+      >
+        {content.hero.secondaryCta.label}
+      </a>
+    </div>
   </nav>
 </header>

@@ -1,16 +1,29 @@
 ---
 import type { LandingContent } from "@site/data/locales";
+import { pageAssetUrl } from "../config/site";
 
 interface Props {
   content: LandingContent;
+  routePath?: string;
 }
 
-const { content } = Astro.props;
+const { content, routePath = "/" } = Astro.props;
+const cards = content.pricing.cards;
+// One shared toggle above the grid drives every card that has billing options.
+const billing = cards.find((card) => card.billing)?.billing;
+const defaultPlan = billing?.defaultPlan ?? "monthly";
+const toggleOptions = billing
+  ? ([
+      ["monthly", billing.monthly],
+      ["yearly", billing.yearly],
+    ] as const)
+  : [];
 
 const leadFromByEvent: Record<string, string> = {
   pricing_free_click: "price-card-free",
   pricing_premium_click: "price-card-premium",
   pricing_premium_plus_click: "price-card-premium-plus",
+  pricing_boost_click: "price-card-boost",
 };
 ---
 
@@ -18,40 +31,251 @@ const leadFromByEvent: Record<string, string> = {
   <div class="pricing-header">
     <h2 class="section-title" set:html={content.pricing.titleHtml} />
   </div>
-  <div class="pricing-grid">
-    {
-      content.pricing.cards.map((card) => (
-        <div class={`pricing-card${card.featured ? " pricing-card--featured" : ""}`}>
-          {card.badge && <div class="pricing-badge">{card.badge}</div>}
-          <div>
-            <div class="pricing-name">{card.name}</div>
-            {card.description && <p class="pricing-desc">{card.description}</p>}
-            <div class="pricing-price">
-              <span class="pricing-amount">{card.amount}</span>
-              <span class="pricing-period">{card.period}</span>
-            </div>
-          </div>
+  {billing && (
+    <div class="pricing-billing">
+      <div class="pricing-toggle" role="radiogroup" aria-label={billing.ariaLabel} data-billing-group>
+        <span class="pricing-toggle-indicator" aria-hidden="true"></span>
+        {toggleOptions.map(([plan, option]) => (
           <button
             type="button"
-            class={`pricing-btn pricing-btn--${card.cta.variant}`}
-            data-clarity-event={card.cta.clarityEvent}
-            data-modal-open
-            data-from={leadFromByEvent[card.cta.clarityEvent] ?? "price-card"}
+            role="radio"
+            class="pricing-toggle-btn"
+            aria-checked={plan === defaultPlan ? "true" : "false"}
+            data-billing-toggle={plan}
           >
-            {card.cta.label}
+            {option.label}
+            {option.saveLabel && <span class="pricing-save">{option.saveLabel}</span>}
           </button>
-          <ul class="pricing-features">
-            {card.features.map((feature) => (
-              <li class={feature.included ? "" : "disabled"}>
-                <span class={`check ${feature.included ? "check--yes" : "check--no"}`}>
-                  {feature.included ? "✓" : "✗"}
-                </span>
-                {feature.text}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))
+        ))}
+      </div>
+    </div>
+  )}
+  <div class={`pricing-grid pricing-grid--count-${cards.length}`}>
+    {
+      cards.map((card) => {
+        const plans = card.billing
+          ? ([
+              ["monthly", card.billing.monthly],
+              ["yearly", card.billing.yearly],
+            ] as const)
+          : [];
+
+        return (
+          <div class={`pricing-card-wrap${card.mascot ? " pricing-card-wrap--mascot" : ""}`} data-pricing-card>
+            {card.mascot && (
+              <img
+                class="pricing-mascot"
+                src={pageAssetUrl(routePath, card.mascot.src)}
+                alt={card.mascot.alt}
+                loading="lazy"
+                decoding="async"
+              />
+            )}
+            <div class={`pricing-card${card.featured ? " pricing-card--featured" : ""}`}>
+              {card.tag && (
+                <img class="pricing-tag" src={pageAssetUrl(routePath, card.tag.src)} alt={card.tag.alt} />
+              )}
+              {card.badge && <div class="pricing-badge">{card.badge}</div>}
+              <div>
+                <div class="pricing-name">{card.name}</div>
+                {card.description && <p class="pricing-desc">{card.description}</p>}
+                {card.billing ? (
+                  <div class="pricing-plans">
+                    {plans.map(([plan, option]) => (
+                      <div
+                        class="pricing-plan"
+                        data-billing-plan={plan}
+                        data-active={plan === defaultPlan ? "true" : "false"}
+                        aria-hidden={plan === defaultPlan ? undefined : "true"}
+                      >
+                        <div class="pricing-price">
+                          <span class="pricing-amount">{option.amount}</span>
+                          <span class="pricing-period">{option.period}</span>
+                        </div>
+                        {option.note && <p class="pricing-note">{option.note}</p>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <div class="pricing-price">
+                      <span class="pricing-amount">{card.amount}</span>
+                      <span class="pricing-period">{card.period}</span>
+                    </div>
+                    {/* Keeps the CTA level with cards that show a billing note. */}
+                    {billing && <p class="pricing-note pricing-note--spacer" aria-hidden="true">&nbsp;</p>}
+                  </>
+                )}
+              </div>
+              <button
+                type="button"
+                class={`pricing-btn pricing-btn--${card.cta.variant}`}
+                data-clarity-event={card.cta.clarityEvent}
+                data-modal-open
+                data-from={leadFromByEvent[card.cta.clarityEvent] ?? "price-card"}
+              >
+                {card.cta.label}
+              </button>
+              <ul class="pricing-features">
+                {card.features.map((feature) => (
+                  <li class={feature.included ? "" : "disabled"}>
+                    <span class={`check ${feature.included ? "check--yes" : "check--no"}`}>
+                      {feature.included ? "✓" : "✗"}
+                    </span>
+                    {feature.text}
+                  </li>
+                ))}
+              </ul>
+              {card.footnote && <p class="pricing-footnote">{card.footnote}</p>}
+            </div>
+          </div>
+        );
+      })
     }
   </div>
 </section>
+
+<script>
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const EASE = "cubic-bezier(0.34, 1.35, 0.64, 1)";
+
+  // Odometer-style swap: only characters that change roll — the old one slides
+  // up out of its slot while the new one rises in from below, un-blurring.
+  const rollAmount = (el: HTMLElement, fromText: string) => {
+    const finalText = el.dataset.amount ?? el.textContent ?? "";
+    el.dataset.amount = finalText;
+    el.setAttribute("aria-label", finalText);
+
+    if (reduceMotion.matches || fromText === finalText) {
+      el.textContent = finalText;
+      return;
+    }
+
+    const length = Math.max(fromText.length, finalText.length);
+    const slots: HTMLElement[] = [];
+    let changed = 0;
+    el.textContent = "";
+
+    for (let i = 0; i < length; i++) {
+      const oldChar = fromText[i] ?? "";
+      const newChar = finalText[i] ?? "";
+      const slot = document.createElement("span");
+      slot.className = "pricing-digit";
+      slot.setAttribute("aria-hidden", "true");
+
+      const incoming = document.createElement("span");
+      incoming.className = "pricing-digit-char";
+      incoming.textContent = newChar;
+      slot.append(incoming);
+      el.append(slot);
+      slots.push(slot);
+
+      if (oldChar === newChar) continue;
+      const delay = changed++ * 45;
+
+      if (oldChar) {
+        const outgoing = document.createElement("span");
+        outgoing.className = "pricing-digit-char pricing-digit-char--out";
+        outgoing.textContent = oldChar;
+        slot.append(outgoing);
+        outgoing.animate(
+          [
+            { transform: "translateY(0)", opacity: 1, filter: "blur(0)" },
+            { transform: "translateY(-100%)", opacity: 0, filter: "blur(4px)" },
+          ],
+          { duration: 380, delay, easing: "cubic-bezier(0.4, 0, 0.2, 1)", fill: "forwards" }
+        );
+      }
+      if (newChar) {
+        incoming.animate(
+          [
+            { transform: "translateY(100%)", opacity: 0, filter: "blur(7px)" },
+            { transform: "translateY(0)", opacity: 1, filter: "blur(0)" },
+          ],
+          { duration: 560, delay, easing: EASE, fill: "backwards" }
+        );
+      }
+    }
+
+    // Back to plain text once everything has landed.
+    const total = 560 + Math.max(changed - 1, 0) * 45 + 40;
+    const run = Symbol();
+    (el as HTMLElement & { _roll?: symbol })._roll = run;
+    window.setTimeout(() => {
+      if ((el as HTMLElement & { _roll?: symbol })._roll === run) el.textContent = finalText;
+    }, total);
+  };
+
+  document.querySelectorAll<HTMLElement>(".pricing").forEach((section) => {
+    const toggles = section.querySelectorAll<HTMLButtonElement>("[data-billing-toggle]");
+    if (!toggles.length) return;
+
+    const select = (plan: string, animate: boolean) => {
+      toggles.forEach((btn) => {
+        const active = btn.dataset.billingToggle === plan;
+        btn.setAttribute("aria-checked", active ? "true" : "false");
+        btn.tabIndex = active ? 0 : -1;
+      });
+
+      section.querySelectorAll<HTMLElement>(".pricing-card").forEach((card) => {
+        const plans = card.querySelectorAll<HTMLElement>("[data-billing-plan]");
+        if (!plans.length) return;
+        const previous = Array.from(plans).find((el) => el.dataset.active === "true");
+        const prevAmount = previous?.querySelector<HTMLElement>(".pricing-amount");
+        const prevText = prevAmount?.dataset.amount ?? prevAmount?.textContent ?? "";
+
+        // Plans are stacked in one grid cell; CSS cross-fades period and note.
+        plans.forEach((el) => {
+          const active = el.dataset.billingPlan === plan;
+          el.dataset.active = active ? "true" : "false";
+          if (active) el.removeAttribute("aria-hidden");
+          else el.setAttribute("aria-hidden", "true");
+        });
+
+        const next = card.querySelector<HTMLElement>(`[data-billing-plan="${plan}"] .pricing-amount`);
+        if (animate && next && previous?.dataset.billingPlan !== plan) rollAmount(next, prevText);
+      });
+
+      moveIndicator(animate);
+    };
+
+    // Pill that slides under the active option.
+    const group = section.querySelector<HTMLElement>("[data-billing-group]");
+    const indicator = group?.querySelector<HTMLElement>(".pricing-toggle-indicator");
+    const moveIndicator = (animate: boolean) => {
+      if (!group || !indicator) return;
+      const active = group.querySelector<HTMLElement>('[data-billing-toggle][aria-checked="true"]');
+      if (!active) return;
+      indicator.style.transition = animate && !reduceMotion.matches ? "" : "none";
+      indicator.style.width = `${active.offsetWidth}px`;
+      indicator.style.transform = `translateX(${active.offsetLeft}px)`;
+      group.classList.add("has-indicator");
+    };
+    window.addEventListener("resize", () => moveIndicator(false));
+    document.fonts?.ready.then(() => moveIndicator(false));
+
+    const initial = Array.from(toggles).find((btn) => btn.getAttribute("aria-checked") === "true");
+    select(initial?.dataset.billingToggle ?? "monthly", false);
+
+    toggles.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (btn.getAttribute("aria-checked") === "true") return;
+        const plan = btn.dataset.billingToggle ?? "monthly";
+        select(plan, true);
+        const track = (window as { fluxoTrack?: (name: string, params?: object) => void }).fluxoTrack;
+        if (typeof track === "function") track("pricing_billing_toggle", { plan });
+      });
+
+      // Arrow keys move between options, as expected for a radiogroup.
+      btn.addEventListener("keydown", (event) => {
+        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+        event.preventDefault();
+        const list = Array.from(toggles);
+        const step = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1;
+        const next = list[(list.indexOf(btn) + step + list.length) % list.length];
+        next.focus();
+        next.click();
+      });
+    });
+  });
+</script>
