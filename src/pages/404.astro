@@ -2,6 +2,7 @@
 import PageLayout from "../layouts/PageLayout.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import LeadModal from "../components/LeadModal.astro";
 import { siteConfig } from "../config/site";
 import { landingContent, landingLanguageNav } from "@site/data/locales";
 
@@ -76,4 +77,6 @@ const notFound = {
       );
     })
   }
+  <!-- One popup serves every locale block's "Get started" -->
+  <LeadModal content={landingContent.en} />
 </PageLayout>
