@@ -60,6 +60,11 @@ const buildPost = (index) => {
       links: { website: "https://example.com" },
     },
     sources: [],
+    heroImage: {
+      key: `blog/${APPLICATION_ID}/card-${index % 4}.webp`,
+      url: `${backendUrl}/images/card-${index % 4}.webp`,
+      fileName: `card-${index % 4}.webp`,
+    },
     pageType: "concept",
   };
 };
@@ -93,12 +98,17 @@ let managedRoot;
 let server;
 let backendUrl;
 const ALL = TOPICS.map((_, index) => index);
-let published = buildExport(ALL.slice(0, -1));
+let published;
 
 before(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), "landing-kit-cycle-"));
   managedRoot = path.join(workspace, "src/content/blog/generated");
   server = http.createServer((req, res) => {
+    if (req.url?.startsWith("/images/")) {
+      res.writeHead(200, { "Content-Type": "image/webp" });
+      res.end(Buffer.from("fake-webp"));
+      return;
+    }
     if (req.headers["x-api-key"] !== API_KEY) {
       res.writeHead(401);
       res.end("unauthorized");
@@ -109,6 +119,7 @@ before(async () => {
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   backendUrl = `http://127.0.0.1:${server.address().port}`;
+  published = buildExport(ALL.slice(0, -1));
 });
 
 after(async () => {

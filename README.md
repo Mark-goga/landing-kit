@@ -56,7 +56,6 @@ Each landing:
 4. Implements the landing-specific modules the kit expects at `@site/…`:
    - `src/data/locales.ts` — copy (English + optional locales), FAQ, pricing,
      etc. Must match the `LandingContent` shape.
-   - `src/content/blog-hero-images.ts` — allowed hero image paths (Zod enum).
    - `src/config/generated-blog-collision.ts` — human-authored slug list to
      guard against auto-generated collisions.
    - `src/config/site.ts` — thin re-export of `@kit/config/site` so `.env`
@@ -103,3 +102,16 @@ The MindAI backend (`content-seo/rebuild`) publishes MDX to each landing's
 holds the schema, layouts, and dynamic routes; the content itself stays inside
 the landing so the pipeline path stays stable
 (`managedContentRoot: src/content/blog/generated`).
+
+### Hero images
+
+The backend owns every article's hero image. Images live in the R2 bucket under
+`blog/<applicationId>/`; on rebuild the backend gives each approved or
+published article that has none the least-used image of that folder (a
+translation shares its source article's image) and the export carries it as
+`heroImage: { key, url, fileName }`. `sync-blog-content` downloads it once into
+`public/assets/blog/<fileName>` and writes `heroImage: /assets/blog/<fileName>`,
+so pages serve a local file and the mobile apps show the same picture from R2.
+Never replace an image under an existing key — upload a new file name instead;
+a file already in `public/assets/blog/` is not fetched again. Articles the
+backend has not illustrated yet keep their legacy `/assets/card-N.*` image.

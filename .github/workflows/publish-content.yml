@@ -88,6 +88,7 @@ jobs:
             --api-key "$PUBLISHING_API_KEY" \
             --backend-url "$BACKEND_URL" \
             --managed-root "${{ inputs.managedContentRoot }}" \
+            --public-root public \
             --application-id "$APPLICATION_ID" > sync-result.json
           cat sync-result.json
 
@@ -113,13 +114,15 @@ jobs:
           set -eu
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # DB-managed content root + auto-generated OG covers are the only
-          # bot-owned paths. Everything else (dynamic routes, brand copy, kit)
-          # is human-authored and must ship via a normal PR.
+          # DB-managed content root, auto-generated OG covers and the hero
+          # images downloaded from the backend's R2 pool are the only bot-owned
+          # paths. Everything else (dynamic routes, brand copy, kit) is
+          # human-authored and must ship via a normal PR.
           # blog-static is human-authored prose, but its `relatedPosts` block is
           # rewritten by assign-related-posts against the new corpus; leaving it
           # behind would let those articles keep links to removed posts.
-          git add "$MANAGED_ROOT" public/assets/covers src/content/blog-static
+          mkdir -p public/assets/blog
+          git add "$MANAGED_ROOT" public/assets/covers public/assets/blog src/content/blog-static
           if git diff --cached --quiet; then
             echo "No content changes to commit."
             echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"

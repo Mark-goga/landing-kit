@@ -15,8 +15,7 @@ import {
 import type { ContentBuildExportDto } from "../api/generated/model";
 import { rebuildControllerExportResponse } from "../api/generated/content-publishing.zod";
 import { createContentPublishingRequestInit } from "../api/content-publishing-fetch";
-import { BLOG_HERO_IMAGES, isBlogHeroImage, type BlogHeroImage } from "@site/content/blog-hero-images";
-import { relatedPostSchema } from "../content/blog-presentation";
+import { isBlogHeroImage, relatedPostSchema } from "../content/blog-presentation";
 
 type BuildPost = ContentBuildExportDto["posts"][number];
 
@@ -78,36 +77,6 @@ const FRONTMATTER_KEY_ORDER = [
 
 type Frontmatter = Record<string, unknown>;
 
-const collectHeroUsage = async (managedRoot: string): Promise<Map<BlogHeroImage, number>> => {
-  const usage = new Map<BlogHeroImage, number>(BLOG_HERO_IMAGES.map((h) => [h, 0]));
-  let localeDirs: string[];
-  try {
-    localeDirs = await fs.readdir(managedRoot);
-  } catch {
-    return usage;
-  }
-  for (const locale of localeDirs) {
-    const dir = path.join(managedRoot, locale);
-    let entries: string[];
-    try {
-      const stat = await fs.stat(dir);
-      if (!stat.isDirectory()) continue;
-      entries = await fs.readdir(dir);
-    } catch {
-      continue;
-    }
-    for (const name of entries) {
-      if (!name.endsWith(".mdx") && !name.endsWith(".md")) continue;
-      try {
-        const parsed = parseMarkdown(await fs.readFile(path.join(dir, name), "utf8"));
-        const hero = (parsed.data as Frontmatter | null)?.heroImage;
-        if (isBlogHeroImage(hero)) usage.set(hero, (usage.get(hero) ?? 0) + 1);
-      } catch { /* skip unreadable */ }
-    }
-  }
-  return usage;
-};
-
 // A post is rewritten from scratch on every rebuild, so anything the landing
 // owns has to be read back out of the file it is about to replace.
 const readExistingFrontmatter = async (
@@ -126,19 +95,54 @@ const readExistingFrontmatter = async (
   return undefined;
 };
 
-const selectHeroImage = (
+// The backend owns which image an article wears (picked once, least-used
+// first, from the app's R2 folder) so the landing and the mobile app show the
+// same one. The landing keeps a local copy under public/ for speed and SEO;
+// a file already on disk is never fetched again, because R2 keys are never
+// reused for a different picture.
+const HERO_DIR = "assets/blog";
+const HERO_FILE_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*\.(avif|gif|jpe?g|png|webp)$/i;
+
+type BuildHeroImage = NonNullable<BuildPost["heroImage"]>;
+
+const downloadHeroImage = async (hero: BuildHeroImage, publicRoot: string): Promise<string> => {
+  if (!HERO_FILE_RE.test(hero.fileName)) {
+    throw new Error(`Unsafe hero image file name: ${hero.fileName}`);
+  }
+  const publicPath = `/${HERO_DIR}/${hero.fileName}`;
+  const dest = path.join(publicRoot, HERO_DIR, hero.fileName);
+  if (existsSync(dest)) return publicPath;
+  const response = await fetch(hero.url);
+  if (!response.ok) {
+    throw new Error(`Hero image download failed (${response.status}): ${hero.url}`);
+  }
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.startsWith("image/")) {
+    throw new Error(`Hero image is not an image (${contentType}): ${hero.url}`);
+  }
+  await fs.mkdir(path.dirname(dest), { recursive: true });
+  const partial = `${dest}.partial-${process.pid}`;
+  await fs.writeFile(partial, Buffer.from(await response.arrayBuffer()));
+  await fs.rename(partial, dest);
+  return publicPath;
+};
+
+// Articles published before images moved to the backend still carry a local
+// card; they keep it until the backend assigns one of its own.
+const resolveHeroImage = async (
   post: BuildPost,
   existing: Frontmatter | undefined,
-  usage: Map<BlogHeroImage, number>,
-): BlogHeroImage | undefined => {
+  publicRoot: string,
+  downloads: Map<string, Promise<string>>,
+): Promise<string | undefined> => {
   if (post.pageType === "video_summary") return undefined;
-  if (isBlogHeroImage(existing?.heroImage)) return existing.heroImage;
-
-  const minCount = Math.min(...BLOG_HERO_IMAGES.map((h) => usage.get(h) ?? 0));
-  const candidates = BLOG_HERO_IMAGES.filter((h) => (usage.get(h) ?? 0) === minCount);
-  const picked = candidates[Math.floor(Math.random() * candidates.length)] ?? BLOG_HERO_IMAGES[0];
-  usage.set(picked, (usage.get(picked) ?? 0) + 1);
-  return picked;
+  const hero = post.heroImage;
+  if (hero) {
+    const pending = downloads.get(hero.url) ?? downloadHeroImage(hero, publicRoot);
+    downloads.set(hero.url, pending);
+    return pending;
+  }
+  return isBlogHeroImage(existing?.heroImage) ? existing.heroImage : undefined;
 };
 
 // "Read next" links are sticky the same way the hero image is: assign-related-
@@ -154,7 +158,7 @@ const carryOverRelatedPosts = (existing: Frontmatter | undefined): unknown[] | u
 
 const orderedFrontmatter = (
   post: BuildPost,
-  heroImage?: BlogHeroImage,
+  heroImage?: string,
   relatedPosts?: unknown[],
 ): Frontmatter => {
   const base: Frontmatter = {
@@ -188,16 +192,28 @@ const orderedFrontmatter = (
   return ordered;
 };
 
-const serializePost = (post: BuildPost, heroImage?: BlogHeroImage, relatedPosts?: unknown[]): string => {
+const serializePost = (post: BuildPost, heroImage?: string, relatedPosts?: unknown[]): string => {
   const yaml = YAML.stringify(orderedFrontmatter(post, heroImage, relatedPosts), {
     defaultStringType: "QUOTE_DOUBLE",
     defaultKeyType: "PLAIN",
     lineWidth: 0,
     minContentWidth: 0,
   });
-  const body = post.bodyMdx.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
+  const body = escapeBareAngleBrackets(
+    post.bodyMdx.replace(/\r\n/g, "\n").replace(/\s+$/g, ""),
+  );
   return `---\n${yaml}---\n\n${body}\n`;
 };
+
+// The backend writes prose with literal "<" that isn't a tag (e.g. Apple
+// Notes' "<<" link shortcut), which MDX's JSX parser rejects outright. Escape
+// any "<" not followed by a valid tag start, but skip fenced/inline code so
+// real code samples in the body render unchanged.
+const escapeBareAngleBrackets = (text: string): string =>
+  text
+    .split(/(```[\s\S]*?```|`[^`\n]*`)/)
+    .map((chunk, i) => (i % 2 === 0 ? chunk.replace(/<(?![a-zA-Z/>])/g, "&lt;") : chunk))
+    .join("");
 
 const parseMarkdown = (source: string): { data: unknown; body: string } => {
   if (!source.startsWith("---\n")) throw new Error("Missing frontmatter");
@@ -216,6 +232,7 @@ const main = async (): Promise<void> => {
   const managedRoot = path.resolve(requireArg(args, "managed-root"));
   const applicationId = requireArg(args, "application-id", "APPLICATION_ID");
   const exportFile = args["export-file"];
+  const publicRoot = path.resolve(typeof args["public-root"] === "string" ? args["public-root"] : "public");
 
   if (!managedRoot.replace(/\\/g, "/").endsWith("/content/blog/generated")) {
     throw new Error(
@@ -273,7 +290,7 @@ const main = async (): Promise<void> => {
     includedInRebuild: boolean;
   };
   const written: WrittenPost[] = [];
-  const heroUsage = await collectHeroUsage(managedRoot);
+  const heroDownloads = new Map<string, Promise<string>>();
   for (const post of posts) {
     const rel = path.join(post.locale, `${post.slug}.mdx`);
     const dest = path.join(tmpRoot, rel);
@@ -282,7 +299,7 @@ const main = async (): Promise<void> => {
     }
     await fs.mkdir(path.dirname(dest), { recursive: true });
     const existing = await readExistingFrontmatter(managedRoot, post);
-    const heroImage = selectHeroImage(post, existing, heroUsage);
+    const heroImage = await resolveHeroImage(post, existing, publicRoot, heroDownloads);
     const serialized = serializePost(post, heroImage, carryOverRelatedPosts(existing));
     await fs.writeFile(dest, serialized, { encoding: "utf8" });
     parseMarkdown(serialized);

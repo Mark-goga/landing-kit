@@ -43,7 +43,6 @@ export default defineConfig({
 
 - `src/config/site.ts` — thin re-export of `@kit/config/site`
 - `src/data/locales.ts` — must satisfy `LandingContent` shape
-- `src/content/blog-hero-images.ts` — Zod enum of allowed hero image paths
 - `src/config/generated-blog-collision.ts` — human-authored slug list, guards auto-generated collisions
 - `src/content.config.ts` — re-export kit content collections schema
 - `src/pages/*.astro` — thin stubs importing kit pages (cookies, privacy, blog/[slug], etc.)

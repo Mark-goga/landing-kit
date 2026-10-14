@@ -45,6 +45,7 @@ const buildPost = (overrides = {}) => ({
   translationGroupId: DRAFT_ID_A,
   author: buildAuthor(),
   sources: [],
+  heroImage: null,
   pageType: "how_to",
   ...overrides,
 });
@@ -71,9 +72,18 @@ const buildExport = (postsOrOverrides = {}) => {
   };
 };
 
+const IMAGE_BYTES = Buffer.from("RIFF0000WEBPVP8 fake-image-bytes");
+const imageRequests = [];
+
 const startFixtureServer = (respondWith) =>
   new Promise((resolve) => {
     const server = http.createServer((req, res) => {
+      if (req.url?.startsWith("/images/")) {
+        imageRequests.push(req.url);
+        res.writeHead(200, { "Content-Type": "image/webp" });
+        res.end(IMAGE_BYTES);
+        return;
+      }
       if (req.headers["x-api-key"] !== API_KEY) {
         res.writeHead(401);
         res.end("unauthorized");
@@ -216,20 +226,65 @@ describe("sync-blog-content", () => {
     assert.deepEqual(afterManifest, beforeManifest);
   });
 
-  it("selects one landing image for a new article and preserves it on later syncs", async () => {
-    setResponse(buildExport(buildPost({ draftId: DRAFT_ID_B, slug: "image-choice" })));
+  it("downloads the backend-assigned hero image once and points the article at the local copy", async () => {
+    const heroImage = {
+      key: `blog/${APPLICATION_ID}/card-7.webp`,
+      url: `${fixtureUrl}/images/card-7.webp`,
+      fileName: "card-7.webp",
+    };
+    setResponse(buildExport(buildPost({ draftId: DRAFT_ID_B, slug: "image-choice", heroImage })));
+    imageRequests.length = 0;
     let result = await invoke();
     assert.equal(result.code, 0, `stderr=${result.stderr}`);
 
-    const imagePath = path.join(managedRoot, "en", "image-choice.mdx");
-    const first = await fs.readFile(imagePath, "utf8");
-    const firstImage = first.match(/heroImage: "([^"]+)"/u)?.[1];
-    assert.match(firstImage ?? "", /^\/assets\/card-\d+\.(png|webp|jpe?g|gif|avif|svg)$/u);
+    const articlePath = path.join(managedRoot, "en", "image-choice.mdx");
+    assert.match(await fs.readFile(articlePath, "utf8"), /heroImage: "\/assets\/blog\/card-7\.webp"/u);
+    const localCopy = path.join(workspace, "public", "assets", "blog", "card-7.webp");
+    assert.deepEqual(await fs.readFile(localCopy), IMAGE_BYTES);
 
     result = await invoke();
     assert.equal(result.code, 0, `stderr=${result.stderr}`);
-    const second = await fs.readFile(imagePath, "utf8");
-    assert.match(second, new RegExp(`heroImage: "${firstImage}"`, "u"));
+    assert.match(await fs.readFile(articlePath, "utf8"), /heroImage: "\/assets\/blog\/card-7\.webp"/u);
+    assert.deepEqual(imageRequests, ["/images/card-7.webp"], "an image on disk is never fetched again");
+  });
+
+  it("keeps a legacy local card while the backend has not assigned an image", async () => {
+    setResponse(buildExport(buildPost({ draftId: DRAFT_ID_B, slug: "legacy-card" })));
+    let result = await invoke();
+    assert.equal(result.code, 0, `stderr=${result.stderr}`);
+    const target = path.join(managedRoot, "en", "legacy-card.mdx");
+    const source = await fs.readFile(target, "utf8");
+    await fs.writeFile(
+      target,
+      source.replace('relatedPosts', 'heroImage: "/assets/card-3.webp"\nrelatedPosts').replace(
+        /^(translationGroupId: .*)$/mu,
+        '$1\nheroImage: "/assets/card-3.webp"',
+      ),
+      "utf8",
+    );
+
+    result = await invoke();
+    assert.equal(result.code, 0, `stderr=${result.stderr}`);
+    assert.match(await fs.readFile(target, "utf8"), /heroImage: "\/assets\/card-3\.webp"/u);
+  });
+
+  it("refuses a hero image file name that could escape the image folder", async () => {
+    setResponse(
+      buildExport(
+        buildPost({
+          draftId: DRAFT_ID_B,
+          slug: "unsafe-image",
+          heroImage: {
+            key: `blog/${APPLICATION_ID}/x.webp`,
+            url: `${fixtureUrl}/images/x.webp`,
+            fileName: "../x.webp",
+          },
+        }),
+      ),
+    );
+    const result = await invoke();
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /Unsafe hero image file name/u);
   });
 
   it("carries the assigned related posts through a rebuild", async () => {
@@ -282,6 +337,11 @@ describe("sync-blog-content", () => {
           slug: "video-summary",
           pageType: "video_summary",
           videoUrl: "https://www.youtube.com/watch?v=abcdefghijk",
+          heroImage: {
+            key: `blog/${APPLICATION_ID}/card-8.webp`,
+            url: `${fixtureUrl}/images/card-8.webp`,
+            fileName: "card-8.webp",
+          },
         }),
       ),
     );

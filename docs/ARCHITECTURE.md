@@ -35,7 +35,7 @@ landing-kit/
 | Belongs in **kit** | Belongs in **consumer** |
 |---|---|
 | Reusable UI, layouts, dynamic routes | Copy (locales), brand assets, `.env` |
-| MindAI client + OpenAPI + orval config | `src/data/locales.ts`, `blog-hero-images.ts` |
+| MindAI client + OpenAPI + orval config | `src/data/locales.ts` |
 | Blog content schema + pipeline scripts | `src/content/blog/generated/` MDX corpus |
 | `siteConfig` env plumbing | `src/config/site.ts` thin re-export |
 | Cross-landing bug fixes | Landing-specific pages under `src/pages/` |

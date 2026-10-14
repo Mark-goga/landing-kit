@@ -20,8 +20,12 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import YAML from "yaml";
-import { isBlogHeroImage, type BlogHeroImage } from "@site/content/blog-hero-images";
-import { relatedPostSchema, type RelatedPost } from "../content/blog-presentation";
+import {
+  isBlogHeroImage,
+  relatedPostSchema,
+  type BlogHeroImage,
+  type RelatedPost,
+} from "../content/blog-presentation";
 
 type StaticBlogFrontmatter = {
   slug: string;
