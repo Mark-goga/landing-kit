@@ -3,6 +3,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
+import { keepTaggedOperations } from './src/openapi/keep-tagged-operations';
+
+const PUBLISHING_TAG = 'content-seo-publishing';
+const publishingOnly = keepTaggedOperations(PUBLISHING_TAG);
+
 const specTarget =
   process.env.MINDAI_SPEC_URL?.trim() || path.join(configDir, 'src/openapi/mindai.json');
 
@@ -12,12 +17,14 @@ export default defineConfig({
       target: specTarget,
       parserOptions: { validate: false },
       filters: {
-        tags: ['content-seo-publishing'],
+        tags: [PUBLISHING_TAG],
       },
+      override: { transformer: publishingOnly },
     },
     output: {
       target: './src/api/generated/content-publishing.ts',
       schemas: './src/api/generated/model',
+      clean: true,
       client: 'fetch',
       mode: 'single',
       override: {
@@ -37,8 +44,9 @@ export default defineConfig({
       target: specTarget,
       parserOptions: { validate: false },
       filters: {
-        tags: ['content-seo-publishing'],
+        tags: [PUBLISHING_TAG],
       },
+      override: { transformer: publishingOnly },
     },
     output: {
       target: './src/api/generated/content-publishing.zod.ts',

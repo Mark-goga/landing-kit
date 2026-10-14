@@ -6,9 +6,9 @@
  * OpenAPI spec version: 1.0
  */
 import type { ContentBuildExportDtoPostsItemOneOf } from './contentBuildExportDtoPostsItemOneOf';
-import type { ContentBuildExportDtoPostsItemOneOfOnefour } from './contentBuildExportDtoPostsItemOneOfOnefour';
-import type { ContentBuildExportDtoPostsItemOneOfTwoseven } from './contentBuildExportDtoPostsItemOneOfTwoseven';
-import type { ContentBuildExportDtoPostsItemOneOfFourzero } from './contentBuildExportDtoPostsItemOneOfFourzero';
-import type { ContentBuildExportDtoPostsItemOneOfFivethree } from './contentBuildExportDtoPostsItemOneOfFivethree';
+import type { ContentBuildExportDtoPostsItemOneOfOnesix } from './contentBuildExportDtoPostsItemOneOfOnesix';
+import type { ContentBuildExportDtoPostsItemOneOfThreeone } from './contentBuildExportDtoPostsItemOneOfThreeone';
+import type { ContentBuildExportDtoPostsItemOneOfFoursix } from './contentBuildExportDtoPostsItemOneOfFoursix';
+import type { ContentBuildExportDtoPostsItemOneOfSixone } from './contentBuildExportDtoPostsItemOneOfSixone';
 
-export type ContentBuildExportDtoPostsItem = ContentBuildExportDtoPostsItemOneOf | ContentBuildExportDtoPostsItemOneOfOnefour | ContentBuildExportDtoPostsItemOneOfTwoseven | ContentBuildExportDtoPostsItemOneOfFourzero | ContentBuildExportDtoPostsItemOneOfFivethree;
+export type ContentBuildExportDtoPostsItem = ContentBuildExportDtoPostsItemOneOf | ContentBuildExportDtoPostsItemOneOfOnesix | ContentBuildExportDtoPostsItemOneOfThreeone | ContentBuildExportDtoPostsItemOneOfFoursix | ContentBuildExportDtoPostsItemOneOfSixone;
