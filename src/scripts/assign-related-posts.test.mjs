@@ -226,7 +226,7 @@ describe("assign-related-posts", () => {
         href: "/blog/zettelkasten-method/",
         title: "A hand-picked title",
         metaDescription: "Editorial copy that must survive untouched.",
-        heroImage: "/assets/card-2.png",
+        heroImage: "/assets/card-1.png",
       };
       await writeCorpus(enDir, [
         [...CORPUS[0], [handAuthored]],
@@ -240,6 +240,31 @@ describe("assign-related-posts", () => {
       assert.equal(related.length, MAX_RELATED_POSTS);
       assert.deepEqual(related[0], handAuthored, "the stored card must stay first and unchanged");
       assert.equal(new Set(related.map((post) => post.href)).size, MAX_RELATED_POSTS);
+    }));
+
+  it("keeps a stored card's words but shows the target's current hero", async () =>
+    withWorkspace("landing-kit-hero-", async ({ workspace: cwd, root: managed, dir: enDir }) => {
+      const stale = {
+        href: "/blog/zettelkasten-method/",
+        title: "A hand-picked title",
+        metaDescription: "Editorial copy that must survive untouched.",
+        heroImage: "/assets/card-9.png",
+      };
+      await writeCorpus(enDir, [[...CORPUS[0], [stale]], ...CORPUS.slice(1, 6)]);
+
+      await runOk({ cwd, root: managed });
+      const [card] = (await readGraph(enDir)).get("/blog/active-recall/");
+      assert.deepEqual(card, { ...stale, heroImage: "/assets/card-1.png" });
+
+      const target = path.join(enDir, `zettelkasten-method${extensionFor(5)}`);
+      const source = await fs.readFile(target, "utf8");
+      await fs.writeFile(
+        target,
+        source.replace('heroImage: "/assets/card-1.png"', 'heroImage: "/assets/blog/card-4.webp"'),
+      );
+      await runOk({ cwd, root: managed });
+      const [moved] = (await readGraph(enDir)).get("/blog/active-recall/");
+      assert.deepEqual(moved, { ...stale, heroImage: "/assets/blog/card-4.webp" });
     }));
 
   it("drops a recommendation whose target disappeared and refills the slot", async () =>

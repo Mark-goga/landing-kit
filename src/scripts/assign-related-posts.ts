@@ -258,6 +258,15 @@ const toCard = (candidate: Article): RelatedPost => ({
   ...(candidate.heroImage ? { heroImage: candidate.heroImage } : {}),
 });
 
+// A stored card keeps its words — static posts quote an editorial subtitle —
+// but its picture is the target's own hero, whatever that is today. Frozen
+// paths went stale when a landing replaced its card images, and an article's
+// hero moves once the backend assigns it one.
+const withTargetHero = (card: RelatedPost, target: Article): RelatedPost => {
+  const { heroImage: _stored, ...words } = card;
+  return target.heroImage ? { ...words, heroImage: target.heroImage } : words;
+};
+
 const assignRelatedPosts = (articles: Article[]): Map<string, RelatedPost[]> => {
   const sorted = [...articles].sort((a, b) => a.key.localeCompare(b.key));
   const byKey = new Map(sorted.map((article) => [article.key, article]));
@@ -366,7 +375,10 @@ const assignRelatedPosts = (articles: Article[]): Map<string, RelatedPost[]> => 
   for (const article of sorted) {
     related.set(
       article.key,
-      selected.get(article.key)!.map((slot) => slot.frozen ?? toCard(byKey.get(slot.key) as Article)),
+      selected.get(article.key)!.map((slot) => {
+        const target = byKey.get(slot.key) as Article;
+        return slot.frozen ? withTargetHero(slot.frozen, target) : toCard(target);
+      }),
     );
   }
   return related;
