@@ -14,7 +14,7 @@ interface Props {
 }
 
 const { variant = "header", clarityEvent } = Astro.props;
-const enabled = Boolean(brandTokens.themeColorDark);
+const enabled = Boolean(brandTokens.themeColorDark) && !brandTokens.forcedTheme;
 const cls = variant === "mobile" ? "theme-toggle theme-toggle--mobile" : "theme-toggle";
 ---
 

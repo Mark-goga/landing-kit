@@ -79,12 +79,16 @@ export const xDefaultPath = "/";
 export type BrandTokens = {
   themeColor: string;
   themeColorDark?: string;
+  /** Pin the landing to one palette: ThemeInit always applies it and ThemeToggle renders nothing. */
+  forcedTheme?: "light" | "dark";
   trackingGlobal: string;
   faviconPath: string;
   faviconDarkPath: string;
   ogImagePath: string;
   googleFontsUrl: string;
   logoPath: string;
+  /** Footer logo; defaults to "assets/LOGOFLUXOBlack.png". */
+  footerLogoPath?: string;
   twitterSite?: string;
   twitterCreator?: string;
 };

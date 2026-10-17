@@ -412,7 +412,7 @@ const breadcrumbSchema = {
   }
 
   .article-category {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -422,7 +422,7 @@ const breadcrumbSchema = {
   }
 
   .article-title {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 42px;
     font-weight: 700;
     line-height: 1.15;
@@ -432,7 +432,7 @@ const breadcrumbSchema = {
   }
 
   .article-subtitle {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 22px;
     font-weight: 400;
     line-height: 1.5;
@@ -441,7 +441,7 @@ const breadcrumbSchema = {
   }
 
   .article-meta {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 14px;
     color: var(--article-text-muted, #6B6B6B);
     display: flex;
@@ -471,7 +471,7 @@ const breadcrumbSchema = {
   }
 
   .article-faq h2 {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: clamp(26px, 3vw, 32px);
     line-height: 1.25;
     color: var(--article-heading, #0E0E0E);
@@ -508,7 +508,7 @@ const breadcrumbSchema = {
   .author-body { flex: 1; }
 
   .author-name {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-weight: 700;
     font-size: 18px;
     color: var(--article-heading, #0E0E0E);
@@ -516,14 +516,14 @@ const breadcrumbSchema = {
   }
 
   .author-role {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 14px;
     color: var(--article-text-muted, #6B6B6B);
     margin: 0 0 8px;
   }
 
   .author-bio {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 15px;
     color: var(--article-text-secondary, #3D3D3D);
     margin: 0 0 8px;
@@ -554,7 +554,7 @@ const breadcrumbSchema = {
   /* Article body is injected via set:html, so its descendants are not
      touched by Astro's scoping — target them with :global(). */
   .article-body :global(p) {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 20px;
     font-weight: 400;
     line-height: 1.7;
@@ -563,7 +563,7 @@ const breadcrumbSchema = {
   }
 
   .article-body :global(h2) {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 28px;
     font-weight: 700;
     line-height: 1.25;
@@ -573,7 +573,7 @@ const breadcrumbSchema = {
   }
 
   .article-body :global(h3) {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 22px;
     font-weight: 600;
     line-height: 1.3;
@@ -614,7 +614,7 @@ const breadcrumbSchema = {
   }
 
   .article-body :global(.sources-title) {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 16px;
     font-weight: 600;
     color: var(--article-text-muted, #6B6B6B);
@@ -629,7 +629,7 @@ const breadcrumbSchema = {
   }
 
   .article-body :global(.sources-list li) {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 14px;
     line-height: 1.6;
     color: var(--article-text-muted, #6B6B6B);
@@ -644,7 +644,7 @@ const breadcrumbSchema = {
 
   .article-body :global(ul),
   .article-body :global(ol) {
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 20px;
     font-weight: 400;
     line-height: 1.7;

@@ -47,7 +47,7 @@ const { posts, title = "Keep reading", eyebrow = "Read next" } = Astro.props;
   .article-related h2 {
     margin: 0 0 24px;
     color: var(--article-heading, #0E0E0E);
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 28px;
     line-height: 1.2;
   }
@@ -90,7 +90,7 @@ const { posts, title = "Keep reading", eyebrow = "Read next" } = Astro.props;
 
   .related-post-copy span {
     color: var(--article-text-muted, #6B6B6B);
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 13px;
     font-weight: 600;
     text-transform: uppercase;
@@ -100,7 +100,7 @@ const { posts, title = "Keep reading", eyebrow = "Read next" } = Astro.props;
   .related-post-copy h3 {
     margin: 6px 0 8px;
     color: var(--article-heading, #0E0E0E);
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 20px;
     line-height: 1.25;
   }
@@ -108,7 +108,7 @@ const { posts, title = "Keep reading", eyebrow = "Read next" } = Astro.props;
   .related-post-copy p {
     margin: 0;
     color: var(--article-text-muted, #555);
-    font-family: 'Roboto Flex', sans-serif;
+    font-family: var(--font-sans, 'Roboto Flex'), sans-serif;
     font-size: 15px;
     line-height: 1.5;
   }

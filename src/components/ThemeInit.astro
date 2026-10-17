@@ -18,14 +18,15 @@
 // Landings without a dark palette (Dzing today) get nothing.
 import { brandTokens } from "@site/config/brand";
 
-const enabled = Boolean(brandTokens.themeColorDark);
+const forced = brandTokens.forcedTheme ?? null;
+const enabled = Boolean(brandTokens.themeColorDark) || Boolean(forced);
 const light = brandTokens.themeColor;
 const dark = brandTokens.themeColorDark ?? brandTokens.themeColor;
 const storageKey = "landing-theme";
 ---
 
 {enabled && (
-  <script is:inline define:vars={{ light, dark, storageKey }}>
+  <script is:inline define:vars={{ light, dark, storageKey, forced }}>
     (function () {
       if (window.__landingThemeInit) return;
       window.__landingThemeInit = true;
@@ -35,9 +36,11 @@ const storageKey = "landing-theme";
       var systemDark =
         typeof window.matchMedia === "function" &&
         window.matchMedia("(prefers-color-scheme: dark)").matches;
-      var theme = stored === "dark" || stored === "light"
-        ? stored
-        : systemDark ? "dark" : "light";
+      var theme = forced
+        ? forced
+        : stored === "dark" || stored === "light"
+          ? stored
+          : systemDark ? "dark" : "light";
       root.setAttribute("data-theme", theme);
 
       var faviconCache = null;

@@ -1,6 +1,14 @@
 ---
 import { pageAssetUrl } from "../config/site";
+import { brandTokens } from "@site/config/brand";
 import type { LandingContent } from "@site/data/locales";
+
+// Optional extras a landing may add to `content.footer`; landings without them
+// render exactly as before.
+type FooterExtras = {
+  tagline?: string;
+  stores?: { label: string; href: string; icon: string }[];
+};
 
 interface Props {
   content: LandingContent;
@@ -8,7 +16,8 @@ interface Props {
 }
 
 const { content, routePath } = Astro.props;
-const logo = pageAssetUrl(routePath, "assets/LOGOFLUXOBlack.png");
+const logo = pageAssetUrl(routePath, brandTokens.footerLogoPath ?? "assets/LOGOFLUXOBlack.png");
+const { tagline, stores = [] } = content.footer as LandingContent["footer"] & FooterExtras;
 const tiktok = pageAssetUrl(routePath, "assets/TiktokLogo.svg");
 const linkedin = pageAssetUrl(routePath, "assets/basil_linkedin-outline.svg");
 const resolveFooterHref = (href: string) => (href.startsWith("#") && href.length > 1 ? `${content.path}${href}` : href);
@@ -18,6 +27,18 @@ const resolveFooterHref = (href: string) => (href.startsWith("#") && href.length
   <div class="footer-top">
     <div class="footer-brand">
       <img src={logo} alt={content.footer.brandAlt} />
+      {tagline && <p class="footer-tagline">{tagline}</p>}
+      {
+        stores.length > 0 && (
+          <div class="footer-stores">
+            {stores.map((store) => (
+              <a href={resolveFooterHref(store.href)} class="footer-store-btn" aria-label={store.label}>
+                <img src={pageAssetUrl(routePath, store.icon)} alt="" aria-hidden="true" />
+              </a>
+            ))}
+          </div>
+        )
+      }
       <div class="footer-socials">
         {
           content.footer.socials.map((social) => (
