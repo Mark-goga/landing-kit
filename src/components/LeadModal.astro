@@ -1,19 +1,26 @@
 ---
-// Lead-capture popup + its behaviour, shared by every page that renders the Header, so
-// "Get started" (header, mobile menu, hero, pricing…) opens it everywhere — not only on
-// the landing page. Render once per page.
+// Lead-capture / store-download popup behaviour, shared by every page that renders the
+// Header, so "Get started" (header, mobile menu, hero, pricing…) opens it everywhere —
+// not only on the landing page. Render once per page.
+//
+// Mode is decided by `storeLinks` (see Modal.astro): when both store URLs are set, mobile
+// visitors are redirected straight to the matching store and desktop sees store buttons.
+// When storeLinks is absent/empty (app not launched yet), it falls back to the original
+// email lead-capture form posted to the leads API.
 import Modal from "./Modal.astro";
 import { siteConfig } from "../config/site";
 import type { LandingContent } from "@site/data/locales";
 
 interface Props {
   content: LandingContent;
+  routePath: string;
+  storeLinks?: { appStore: string; googlePlay: string };
 }
 
-const { content } = Astro.props;
+const { content, routePath, storeLinks } = Astro.props;
 ---
 
-<Modal content={content} />
+<Modal content={content} routePath={routePath} storeLinks={storeLinks} />
 
 <script
   define:vars={{
@@ -24,6 +31,17 @@ const { content } = Astro.props;
   }}
 >
   (() => {
+    const iOS_PATTERN = /iPad|iPhone|iPod/;
+    const ANDROID_PATTERN = /Android/;
+
+    const detectPlatform = () => {
+      if (typeof navigator === "undefined") return "desktop";
+      const ua = navigator.userAgent;
+      if (iOS_PATTERN.test(ua)) return "ios";
+      if (ANDROID_PATTERN.test(ua)) return "android";
+      return "desktop";
+    };
+
     const modal = document.querySelector("[data-lead-modal]");
     const toastEl = document.querySelector("[data-lead-toast]");
     let toastTimer;
@@ -81,8 +99,33 @@ const { content } = Astro.props;
       closeModal();
     };
 
+    // Store buttons only exist in the DOM when Modal.astro rendered store mode.
+    const getStoreUrl = (platform) => {
+      const storeContainer = modal?.querySelector("[data-modal-stores]");
+      const storeBtns = storeContainer?.querySelectorAll("[data-store-link]");
+      let url = "";
+      storeBtns?.forEach((btn) => {
+        if (btn.dataset.storeLink === "appstore" && platform === "ios") url = btn.href;
+        if (btn.dataset.storeLink === "googleplay" && platform === "android") url = btn.href;
+      });
+      return url;
+    };
+
+    // Wire up all data-modal-open triggers: on mobile with store links available, redirect
+    // straight to the store; otherwise open the modal (store buttons or the lead form).
     document.querySelectorAll("[data-modal-open]").forEach((trigger) => {
-      trigger.addEventListener("click", () => openModal(trigger.getAttribute("data-from")));
+      trigger.addEventListener("click", (e) => {
+        e.preventDefault();
+        const from = trigger.getAttribute("data-from");
+        const platform = detectPlatform();
+        const url = platform !== "desktop" ? getStoreUrl(platform) : "";
+        if (url) {
+          track("store_redirect", { from, platform });
+          window.location.href = url;
+        } else {
+          openModal(from);
+        }
+      });
     });
 
     if (modal) {
@@ -95,6 +138,7 @@ const { content } = Astro.props;
       if (event.key === "Escape" && modal && !modal.hidden) userCloseModal();
     });
 
+    // --- Legacy email lead-capture path (form only exists in the DOM when storeLinks is empty) ---
     const buildUtmMetadata = () => {
       const params = new URLSearchParams(window.location.search);
       return Object.fromEntries(Array.from(params.entries()).filter(([key]) => key.startsWith("utm_")));

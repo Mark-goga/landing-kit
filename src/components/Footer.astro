@@ -32,7 +32,13 @@ const resolveFooterHref = (href: string) => (href.startsWith("#") && href.length
         stores.length > 0 && (
           <div class="footer-stores">
             {stores.map((store) => (
-              <a href={resolveFooterHref(store.href)} class="footer-store-btn" aria-label={store.label}>
+              <a
+                href={resolveFooterHref(store.href)}
+                class="footer-store-btn"
+                aria-label={store.label}
+                data-footer-store
+                data-store-label={store.label}
+              >
                 <img src={pageAssetUrl(routePath, store.icon)} alt="" aria-hidden="true" />
               </a>
             ))}
@@ -65,7 +71,7 @@ const resolveFooterHref = (href: string) => (href.startsWith("#") && href.length
             <ul class="footer-links">
               {column.links.map((link) => (
                 <li>
-                  <a href={resolveFooterHref(link.href)}>{link.label}</a>
+                  <a href={resolveFooterHref(link.href)} data-footer-store-link>{link.label}</a>
                 </li>
               ))}
             </ul>
@@ -81,3 +87,117 @@ const resolveFooterHref = (href: string) => (href.startsWith("#") && href.length
     </button>
   </div>
 </footer>
+
+<script>
+  (() => {
+    // Platform detection
+    const iOS_PATTERN = /iPad|iPhone|iPod/;
+    const ANDROID_PATTERN = /Android/;
+
+    const detectPlatform = () => {
+      if (typeof navigator === "undefined") return "desktop";
+      const ua = navigator.userAgent;
+      if (iOS_PATTERN.test(ua)) return "ios";
+      if (ANDROID_PATTERN.test(ua)) return "android";
+      return "desktop";
+    };
+
+    // Store label keywords (case-insensitive)
+    const APPLE_KEYWORDS = ["app store", "appstore"];
+    const GOOGLE_KEYWORDS = ["google play", "googleplay", "play store", "playmarket", "play market"];
+
+    const isAppleStore = (label: string) => {
+      const l = label.toLowerCase();
+      return APPLE_KEYWORDS.some((k) => l.includes(k));
+    };
+
+    const isGooglePlay = (label: string) => {
+      const l = label.toLowerCase();
+      return GOOGLE_KEYWORDS.some((k) => l.includes(k));
+    };
+
+    // Read store links from the modal's store buttons (set at build time)
+    const modal = document.querySelector("[data-lead-modal]");
+    const storeContainer = modal?.querySelector("[data-modal-stores]");
+    const storeBtns = storeContainer?.querySelectorAll("[data-store-link]");
+    let appStoreUrl = "";
+    let googlePlayUrl = "";
+    storeBtns?.forEach((btn) => {
+      if ((btn as HTMLElement).dataset.storeLink === "appstore") {
+        appStoreUrl = (btn as HTMLAnchorElement).href;
+      }
+      if ((btn as HTMLElement).dataset.storeLink === "googleplay") {
+        googlePlayUrl = (btn as HTMLAnchorElement).href;
+      }
+    });
+
+    const getStoreUrlForPlatform = (platform: string, label: string) => {
+      if (platform === "ios") return appStoreUrl;
+      if (platform === "android") return googlePlayUrl;
+      return null;
+    };
+
+    const track = (name: string, params: object) => {
+      if (typeof window.fluxoTrack === "function") window.fluxoTrack(name, params || {});
+    };
+
+    // Handle footer store icon buttons
+    document.querySelectorAll("[data-footer-store]").forEach((el) => {
+      (el as HTMLAnchorElement).addEventListener("click", (e) => {
+        const platform = detectPlatform();
+        const label = (el as HTMLElement).dataset.storeLabel || "";
+        let url: string | null = null;
+
+        if (platform !== "desktop") {
+          // On mobile, redirect to the matching store
+          if (isAppleStore(label) && platform === "ios") {
+            url = appStoreUrl || null;
+          } else if (isGooglePlay(label) && platform === "android") {
+            url = googlePlayUrl || null;
+          }
+          // If the button doesn't match the platform, still follow the original link
+          // (it already points to the correct store from locales.ts)
+        }
+
+        if (url) {
+          e.preventDefault();
+          track("footer_store_click", { from: "footer-store-icon", platform, label });
+          window.location.href = url;
+        }
+      });
+    });
+
+    // Handle footer column text links (App Store / Google Play)
+    document.querySelectorAll("[data-footer-store-link]").forEach((el) => {
+      (el as HTMLAnchorElement).addEventListener("click", (e) => {
+        const label = (el as HTMLElement).textContent || "";
+        const platform = detectPlatform();
+
+        if (platform !== "desktop") {
+          let url: string | null = null;
+          if (isAppleStore(label)) {
+            url = platform === "ios" ? appStoreUrl : null;
+          } else if (isGooglePlay(label)) {
+            url = platform === "android" ? googlePlayUrl : null;
+          }
+
+          if (url) {
+            e.preventDefault();
+            track("footer_store_click", { from: "footer-column", platform, label });
+            window.location.href = url;
+            return;
+          }
+          // If user clicks "App Store" on Android (or vice versa), open the modal
+          if ((isAppleStore(label) || isGooglePlay(label)) && !url) {
+            e.preventDefault();
+            track("footer_store_click", { from: "footer-column", platform, label, action: "open_modal" });
+            const openBtn = document.querySelector("[data-modal-open]");
+            if (openBtn instanceof HTMLElement) openBtn.click();
+            return;
+          }
+        }
+        // Desktop: follow the original link (which points to the store)
+      });
+    });
+  })();
+</script>

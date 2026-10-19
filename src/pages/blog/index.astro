@@ -1,4 +1,10 @@
 ---
 import BlogIndexLayout from "../../layouts/BlogIndexLayout.astro";
+
+interface Props {
+  storeLinks?: { appStore: string; googlePlay: string };
+}
+
+const { storeLinks } = Astro.props;
 ---
-<BlogIndexLayout locale="en" />
+<BlogIndexLayout locale="en" storeLinks={storeLinks} />

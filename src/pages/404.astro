@@ -6,6 +6,11 @@ import LeadModal from "../components/LeadModal.astro";
 import { siteConfig } from "../config/site";
 import { landingContent, landingLanguageNav } from "@site/data/locales";
 
+interface Props {
+  storeLinks?: { appStore: string; googlePlay: string };
+}
+
+const { storeLinks } = Astro.props;
 const routePath = "/";
 const languageNav = landingLanguageNav();
 
@@ -78,5 +83,5 @@ const notFound = {
     })
   }
   <!-- One popup serves every locale block's "Get started" -->
-  <LeadModal content={landingContent.en} />
+  <LeadModal content={landingContent.en} routePath={routePath} storeLinks={storeLinks} />
 </PageLayout>

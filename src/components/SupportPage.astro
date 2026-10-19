@@ -11,9 +11,10 @@ interface Props {
   supportEmail: string;
   subscriptions?: boolean;
   deleteAccountPath?: string;
+  storeLinks?: { appStore: string; googlePlay: string };
 }
 
-const { supportEmail, subscriptions = false, deleteAccountPath } = Astro.props;
+const { supportEmail, subscriptions = false, deleteAccountPath, storeLinks } = Astro.props;
 const content = landingContent.en;
 const copy = supportCopy;
 const appName = siteConfig.name;
@@ -137,7 +138,7 @@ const faq: FaqItem[] = [
     </div>
   </main>
   <Footer content={content} routePath={SUPPORT_PATH} />
-  <LeadModal content={content} />
+  <LeadModal content={content} routePath={SUPPORT_PATH} storeLinks={storeLinks} />
 </PageLayout>
 
 <script

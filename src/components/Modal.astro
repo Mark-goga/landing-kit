@@ -1,12 +1,23 @@
 ---
+// Shared "Get started" popup, shared by every page that renders the Header.
+//
+// Mode is decided by `storeLinks`: when both store URLs are set, this renders direct
+// App Store / Google Play buttons (desktop) — mobile visitors never see this markup,
+// LeadModal.astro redirects them straight to the store instead. When storeLinks is
+// absent/empty (app not launched yet), it falls back to the original email lead-capture
+// form posted to the leads API.
 import type { LandingContent } from "@site/data/locales";
-import { siteConfig } from "../config/site";
+import { siteConfig, pageAssetUrl } from "../config/site";
 
 interface Props {
   content: LandingContent;
+  routePath: string;
+  storeLinks?: { appStore: string; googlePlay: string };
 }
 
-const { content } = Astro.props;
+const { content, routePath, storeLinks } = Astro.props;
+const links = storeLinks ?? { appStore: "", googlePlay: "" };
+const hasStores = Boolean(links.appStore && links.googlePlay);
 ---
 
 <div class="lead-modal" id="lead-modal" data-lead-modal hidden>
@@ -19,27 +30,68 @@ const { content } = Astro.props;
     </button>
     <h2 class="lead-modal__title" id="lead-modal-title">{content.modal.title}</h2>
     <p class="lead-modal__desc">{content.modal.description}</p>
-    <form class="lead-modal__form" data-lead-form data-from="price-card-free" novalidate>
-      <input
-        type="email"
-        name="email"
-        class="lead-modal__input"
-        placeholder={content.modal.placeholder}
-        required
-        autocomplete="email"
-      />
-      {
-        siteConfig.turnstileSiteKey && (
-          <div
-            class="cf-turnstile"
-            data-sitekey={siteConfig.turnstileSiteKey}
-            data-appearance="interaction-only"
-            data-size="flexible"
+    {
+      hasStores ? (
+        <div class="lead-modal__stores" data-modal-stores>
+          <a
+            href={links.appStore}
+            class="lead-modal__store-btn lead-modal__store-btn--apple"
+            data-store-link="appstore"
+            aria-label={content.modal.appStoreLabel}
+          >
+            <img
+              class="lead-modal__store-icon"
+              src={pageAssetUrl(routePath, "assets/ic_baseline-apple.svg")}
+              alt=""
+              aria-hidden="true"
+            />
+            <span class="lead-modal__store-text">
+              <span class="lead-modal__store-small">{content.modal.downloadOn}</span>
+              <span class="lead-modal__store-name">App Store</span>
+            </span>
+          </a>
+          <a
+            href={links.googlePlay}
+            class="lead-modal__store-btn lead-modal__store-btn--google"
+            data-store-link="googleplay"
+            aria-label={content.modal.googlePlayLabel}
+          >
+            <img
+              class="lead-modal__store-icon"
+              src={pageAssetUrl(routePath, "assets/material-icon-theme_google.svg")}
+              alt=""
+              aria-hidden="true"
+            />
+            <span class="lead-modal__store-text">
+              <span class="lead-modal__store-small">{content.modal.downloadOn}</span>
+              <span class="lead-modal__store-name">Google Play</span>
+            </span>
+          </a>
+        </div>
+      ) : (
+        <form class="lead-modal__form" data-lead-form data-from="price-card-free" novalidate>
+          <input
+            type="email"
+            name="email"
+            class="lead-modal__input"
+            placeholder={content.modal.placeholder}
+            required
+            autocomplete="email"
           />
-        )
-      }
-      <button type="submit" class="lead-modal__submit" data-lead-submit>{content.modal.submit}</button>
-    </form>
+          {
+            siteConfig.turnstileSiteKey && (
+              <div
+                class="cf-turnstile"
+                data-sitekey={siteConfig.turnstileSiteKey}
+                data-appearance="interaction-only"
+                data-size="flexible"
+              />
+            )
+          }
+          <button type="submit" class="lead-modal__submit" data-lead-submit>{content.modal.submit}</button>
+        </form>
+      )
+    }
   </div>
 </div>
 

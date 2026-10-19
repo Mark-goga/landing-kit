@@ -10,9 +10,10 @@ import { landingContent, localeMeta, type LanguageOption } from "@site/data/loca
 
 interface Props {
   locale: LocaleKey;
+  storeLinks?: { appStore: string; googlePlay: string };
 }
 
-const { locale } = Astro.props;
+const { locale, storeLinks } = Astro.props;
 
 const content = landingContent[locale];
 const blogStrings = content.blog;
@@ -87,5 +88,5 @@ const blogSchema = {
   </main>
 
   <Footer content={content} routePath={routePath} />
-  <LeadModal content={content} />
+  <LeadModal content={content} routePath={routePath} storeLinks={storeLinks} />
 </PageLayout>

@@ -12,8 +12,9 @@ export async function getStaticPaths() {
 
 interface Props {
   locale: LocaleKey;
+  storeLinks?: { appStore: string; googlePlay: string };
 }
 
-const { locale } = Astro.props;
+const { locale, storeLinks } = Astro.props;
 ---
-<BlogIndexLayout locale={locale} />
+<BlogIndexLayout locale={locale} storeLinks={storeLinks} />

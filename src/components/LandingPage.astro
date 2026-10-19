@@ -16,9 +16,10 @@ interface Props {
   locale: LocaleKey;
   canonicalPath?: string;
   routePath?: string;
+  storeLinks?: { appStore: string; googlePlay: string };
 }
 
-const { locale, canonicalPath, routePath } = Astro.props;
+const { locale, canonicalPath, routePath, storeLinks } = Astro.props;
 const content = landingContent[locale];
 const pageCanonicalPath = canonicalPath ?? content.path;
 const pageRoutePath = routePath ?? content.path;
@@ -35,6 +36,6 @@ const pageRoutePath = routePath ?? content.path;
     <Cta content={content} />
   </main>
   <Footer content={content} routePath={pageRoutePath} />
-  <LeadModal content={content} />
+  <LeadModal content={content} routePath={pageRoutePath} storeLinks={storeLinks} />
 </LandingLayout>
 

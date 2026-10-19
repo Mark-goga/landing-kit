@@ -263,7 +263,7 @@ const breadcrumbSchema = {
   </main>
 
   <Footer content={content} routePath={routePath} />
-  <Modal content={content} />
+  <Modal content={content} routePath={routePath} />
 </PageLayout>
 
 <script define:vars={{ leadsUrl: `${siteConfig.leadsApiUrl}/leads`, applicationId: siteConfig.applicationId, toast: content.toast, turnstileEnabled: Boolean(siteConfig.turnstileSiteKey) }}>

@@ -5,6 +5,7 @@ interface Props {
   supportEmail: string;
   subscriptions?: boolean;
   deleteAccountPath?: string;
+  storeLinks?: { appStore: string; googlePlay: string };
 }
 ---
 <SupportPage {...Astro.props} />
