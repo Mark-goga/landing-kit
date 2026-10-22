@@ -1,0 +1,276 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import Header from "./Header.astro";
+import Footer from "./Footer.astro";
+import LeadModal from "./LeadModal.astro";
+import { siteConfig } from "../config/site";
+import { landingContent, landingLanguageNav } from "@site/data/locales";
+import { DELETE_ACCOUNT_PATH, type AccountDataItem } from "../lib/account-deletion";
+
+interface Props {
+  supportEmail: string;
+  /** The last in-app step: what deleting in the app removes besides the account. */
+  inAppOutcome: string;
+  deletedData: AccountDataItem[];
+  keptData: AccountDataItem[];
+  storeLinks?: { appStore: string; googlePlay: string };
+}
+
+const { supportEmail, inAppOutcome, deletedData, keptData, storeLinks } = Astro.props;
+const content = landingContent.en;
+const appName = siteConfig.name;
+---
+
+<PageLayout
+  title={`Delete Account — ${appName}`}
+  description={`Permanently delete your ${appName} account and all associated data.`}
+  canonicalPath={DELETE_ACCOUNT_PATH}
+  routePath={DELETE_ACCOUNT_PATH}
+  lang="en"
+  robots="noindex, nofollow"
+>
+  <Header content={content} routePath={DELETE_ACCOUNT_PATH} languageNav={landingLanguageNav()} />
+  <main class="legal-page">
+    <section class="delete-account">
+      <h1>Delete your {appName} account</h1>
+      <p>
+        This page explains how to delete your {appName} account and which data is deleted
+        or kept. Deleting your account is permanent and cannot be undone.
+      </p>
+
+      <div class="legal-prose delete-account-steps">
+        <h2>How to delete your account</h2>
+        <h3>In the {appName} app</h3>
+        <ol>
+          <li>Open {appName} and go to <strong>Settings</strong>.</li>
+          <li>Tap <strong>Account</strong>, then <strong>Delete account</strong>.</li>
+          <li>{inAppOutcome}</li>
+        </ol>
+        <h3>On this page, without the app</h3>
+        <ol>
+          <li>Enter the email address of your {appName} account below and tap <strong>Delete account</strong>.</li>
+          <li>Open the confirmation email we send you. The link is valid for 24 hours.</li>
+          <li>Tap <strong>Delete my account</strong> in the email. Your account is deleted as soon as the link opens.</li>
+        </ol>
+      </div>
+
+      <form class="cta-form" data-delete-form novalidate>
+        <div class="cta-input-shell">
+          <div class="cta-input-row">
+            <svg class="cta-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path
+                d="M2.5 5.5h15v9h-15z"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              ></path>
+              <path
+                d="m3 6.5 7 5 7-5"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+            </svg>
+            <input type="email" name="email" placeholder="you@example.com" required autocomplete="email" />
+          </div>
+        </div>
+        {
+          siteConfig.turnstileSiteKey && (
+            <div
+              class="cf-turnstile"
+              data-sitekey={siteConfig.turnstileSiteKey}
+              data-appearance="interaction-only"
+              data-size="flexible"
+            />
+          )
+        }
+        <button type="submit">Delete account</button>
+      </form>
+      <p class="delete-account-status" data-delete-status role="status" aria-live="polite" hidden></p>
+
+      <div class="legal-prose delete-account-data">
+        <p>
+          You can also email <a href={`mailto:${supportEmail}`}>{supportEmail}</a> from the address
+          linked to your account and we will delete it for you.
+        </p>
+
+        <h2>Data we delete</h2>
+        <p>Once you confirm, we delete the following from our servers straight away:</p>
+        <ul data-deleted-data>
+          {deletedData.map((item) => (
+            <li><strong>{item.title}</strong> — {item.detail}</li>
+          ))}
+        </ul>
+
+        <h2>Data we keep</h2>
+        <ul data-kept-data>
+          {keptData.map((item) => (
+            <li><strong>{item.title}</strong> — {item.detail}</li>
+          ))}
+        </ul>
+
+        <h2>Retention period</h2>
+        <p>
+          There is no waiting period: the data listed under “Data we delete” is removed the moment
+          you confirm and is not kept afterwards. Only the items under “Data we keep” remain, for the
+          reasons given above. See our <a href="/privacy/">Privacy Policy</a> for details.
+        </p>
+      </div>
+    </section>
+  </main>
+  <Footer content={content} routePath={DELETE_ACCOUNT_PATH} />
+  <LeadModal content={content} routePath={DELETE_ACCOUNT_PATH} storeLinks={storeLinks} />
+</PageLayout>
+
+<script
+  define:vars={{
+    requestUrl: `${siteConfig.leadsApiUrl}/account-deletion/request`,
+    applicationId: siteConfig.applicationId,
+    turnstileEnabled: Boolean(siteConfig.turnstileSiteKey),
+  }}
+>
+  (() => {
+    const form = document.querySelector("[data-delete-form]");
+    const statusEl = document.querySelector("[data-delete-status]");
+    if (!form) return;
+
+    const showStatus = (message, isError) => {
+      if (!statusEl) return;
+      statusEl.textContent = message;
+      statusEl.classList.toggle("delete-account-status--error", Boolean(isError));
+      statusEl.hidden = false;
+    };
+
+    const getTurnstileToken = () => {
+      const field = form.querySelector('[name="cf-turnstile-response"]');
+      return field ? field.value : "";
+    };
+
+    const resetTurnstile = () => {
+      if (!turnstileEnabled || typeof window.turnstile === "undefined") return;
+      const widget = form.querySelector(".cf-turnstile");
+      if (widget) window.turnstile.reset(widget);
+    };
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const input = form.querySelector('input[type="email"]');
+      const button = form.querySelector('button[type="submit"]');
+      const email = input ? input.value.trim() : "";
+
+      if (!input || !input.checkValidity() || !email) {
+        if (input) input.reportValidity();
+        return;
+      }
+
+      const turnstileToken = turnstileEnabled ? getTurnstileToken() : "";
+      if (turnstileEnabled && !turnstileToken) {
+        showStatus("Please complete the security check and try again.", true);
+        return;
+      }
+
+      if (button) button.disabled = true;
+      form.setAttribute("aria-busy", "true");
+
+      try {
+        const response = await fetch(requestUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, applicationId, turnstileToken }),
+        });
+        if (!response.ok) throw new Error("Request failed with status " + response.status);
+        if (input) input.value = "";
+        showStatus("If an account exists for this email, you'll receive a confirmation link shortly.", false);
+      } catch (error) {
+        showStatus("Something went wrong. Please try again later.", true);
+      } finally {
+        resetTurnstile();
+        if (button) button.disabled = false;
+        form.removeAttribute("aria-busy");
+      }
+    });
+  })();
+</script>
+
+<style>
+  .delete-account {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .delete-account h1 {
+    margin: 0;
+    font-family: var(--font-sans, "Roboto Flex"), sans-serif;
+    font-size: 1.75rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--article-heading, #0e0e0e);
+  }
+
+  .delete-account > p {
+    margin: 0;
+    font-family: var(--font-sans, "Roboto Flex"), sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--article-text, #1c1c1c);
+  }
+
+  .delete-account .cta-form {
+    background: var(--article-input-bg, rgba(8, 3, 27, 0.04));
+    outline-color: var(--article-border, #e8e8e8);
+  }
+
+  .delete-account .cta-form .cta-icon {
+    color: var(--article-text-muted, #707070);
+    opacity: 0.7;
+  }
+
+  .delete-account .cta-form input {
+    color: var(--article-text, #1c1c1c);
+  }
+
+  .delete-account .cta-form input::placeholder {
+    color: var(--article-text-muted, #707070);
+  }
+
+  .delete-account .cta-form button {
+    background: var(--article-accent, #4c27e3);
+    color: #ffffff;
+  }
+
+  .delete-account .cta-form button:hover {
+    background: color-mix(in srgb, var(--article-accent, #4c27e3) 85%, black);
+  }
+
+  .delete-account-status {
+    min-height: 1.5em;
+    margin: 0;
+    font-family: var(--font-sans, "Roboto Flex"), sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--article-text, #1c1c1c);
+  }
+
+  .delete-account-status[hidden] {
+    display: none;
+  }
+
+  .delete-account-status--error {
+    color: #c0392b;
+  }
+
+  :global(html[data-theme="dark"]) .delete-account-status--error {
+    color: #e0716a;
+  }
+
+  .delete-account .legal-prose h2:first-child {
+    margin-top: 0;
+  }
+
+  .delete-account .legal-prose > :last-child {
+    margin-bottom: 0;
+  }
+</style>

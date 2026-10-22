@@ -1,0 +1,8 @@
+---
+import DeleteAccountConfirmPage from "../../components/DeleteAccountConfirmPage.astro";
+
+interface Props {
+  storeLinks?: { appStore: string; googlePlay: string };
+}
+---
+<DeleteAccountConfirmPage {...Astro.props} />

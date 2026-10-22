@@ -1,0 +1,13 @@
+---
+import DeleteAccountPage from "../components/DeleteAccountPage.astro";
+import type { AccountDataItem } from "../lib/account-deletion";
+
+interface Props {
+  supportEmail: string;
+  inAppOutcome: string;
+  deletedData: AccountDataItem[];
+  keptData: AccountDataItem[];
+  storeLinks?: { appStore: string; googlePlay: string };
+}
+---
+<DeleteAccountPage {...Astro.props} />

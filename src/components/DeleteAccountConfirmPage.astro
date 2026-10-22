@@ -1,0 +1,105 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import Header from "./Header.astro";
+import Footer from "./Footer.astro";
+import LeadModal from "./LeadModal.astro";
+import { siteConfig } from "../config/site";
+import { landingContent, landingLanguageNav } from "@site/data/locales";
+import { DELETE_ACCOUNT_CONFIRM_PATH } from "../lib/account-deletion";
+
+interface Props {
+  storeLinks?: { appStore: string; googlePlay: string };
+}
+
+const { storeLinks } = Astro.props;
+const content = landingContent.en;
+---
+
+<PageLayout
+  title={`Confirm Account Deletion — ${siteConfig.name}`}
+  description={`Confirm the permanent deletion of your ${siteConfig.name} account.`}
+  canonicalPath={DELETE_ACCOUNT_CONFIRM_PATH}
+  routePath={DELETE_ACCOUNT_CONFIRM_PATH}
+  lang="en"
+  robots="noindex, nofollow"
+>
+  <Header content={content} routePath={DELETE_ACCOUNT_CONFIRM_PATH} languageNav={landingLanguageNav()} />
+  <main class="legal-page">
+    <section class="delete-confirm">
+      <h1>Confirm account deletion</h1>
+      <p class="delete-confirm-status" data-confirm-pending>Verifying your request…</p>
+      <p class="delete-confirm-status" data-confirm-success hidden>Your account has been deleted.</p>
+      <p class="delete-confirm-status" data-confirm-error hidden>This link is invalid or has expired.</p>
+    </section>
+  </main>
+  <Footer content={content} routePath={DELETE_ACCOUNT_CONFIRM_PATH} />
+  <LeadModal content={content} routePath={DELETE_ACCOUNT_CONFIRM_PATH} storeLinks={storeLinks} />
+</PageLayout>
+
+<script
+  define:vars={{
+    confirmUrl: `${siteConfig.leadsApiUrl}/account-deletion/confirm`,
+  }}
+>
+  (() => {
+    const pendingEl = document.querySelector("[data-confirm-pending]");
+    const successEl = document.querySelector("[data-confirm-success]");
+    const errorEl = document.querySelector("[data-confirm-error]");
+
+    const token = new URLSearchParams(location.search).get("token");
+
+    const show = (el) => {
+      [pendingEl, successEl, errorEl].forEach((node) => {
+        if (node) node.hidden = node !== el;
+      });
+    };
+
+    if (!token) {
+      show(errorEl);
+      return;
+    }
+
+    (async () => {
+      try {
+        const response = await fetch(confirmUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        if (!response.ok) throw new Error("Request failed with status " + response.status);
+        show(successEl);
+      } catch (error) {
+        show(errorEl);
+      }
+    })();
+  })();
+</script>
+
+<style>
+  .delete-confirm {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .delete-confirm h1 {
+    margin: 0;
+    font-family: var(--font-sans, "Roboto Flex"), sans-serif;
+    font-size: 1.75rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--article-heading, #0e0e0e);
+  }
+
+  .delete-confirm-status {
+    margin: 0;
+    font-family: var(--font-sans, "Roboto Flex"), sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--article-text, #1c1c1c);
+  }
+
+  .delete-confirm-status[hidden] {
+    display: none;
+  }
+</style>
