@@ -91,4 +91,16 @@ export type BrandTokens = {
   footerLogoPath?: string;
   twitterSite?: string;
   twitterCreator?: string;
+  /** Directory badges (Fazier, ...) shown at the very bottom of the footer. */
+  footerBadges?: readonly FooterBadge[];
+};
+
+export type FooterBadge = {
+  href: string;
+  /** Shown on the dark theme, and on both when `imageUrlLight` is absent. */
+  imageUrl: string;
+  /** Shown instead of `imageUrl` while the page is on the light theme (`html[data-theme="light"]`). */
+  imageUrlLight?: string;
+  alt: string;
+  width: number;
 };

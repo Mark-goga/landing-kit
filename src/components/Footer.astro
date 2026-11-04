@@ -20,6 +20,7 @@ const logo = pageAssetUrl(routePath, brandTokens.footerLogoPath ?? "assets/LOGOF
 const { tagline, stores = [] } = content.footer as LandingContent["footer"] & FooterExtras;
 const tiktok = pageAssetUrl(routePath, "assets/TiktokLogo.svg");
 const linkedin = pageAssetUrl(routePath, "assets/basil_linkedin-outline.svg");
+const footerBadges = brandTokens.footerBadges ?? [];
 const resolveFooterHref = (href: string) => (href.startsWith("#") && href.length > 1 ? `${content.path}${href}` : href);
 ---
 
@@ -85,6 +86,26 @@ const resolveFooterHref = (href: string) => (href.startsWith("#") && href.length
     <button type="button" class="footer-consent" onclick="window.displayPreferenceModal && window.displayPreferenceModal()">
       {content.footer.consentPreferences}
     </button>
+    {
+      footerBadges.length > 0 && (
+        <div class="footer-badges">
+          {footerBadges.map((badge) => (
+            <a href={badge.href} target="_blank" rel="noopener">
+              <img
+                class={badge.imageUrlLight ? "footer-badge-dark" : undefined}
+                src={badge.imageUrl}
+                width={badge.width}
+                alt={badge.alt}
+                loading="lazy"
+              />
+              {badge.imageUrlLight && (
+                <img class="footer-badge-light" src={badge.imageUrlLight} width={badge.width} alt={badge.alt} loading="lazy" />
+              )}
+            </a>
+          ))}
+        </div>
+      )
+    }
   </div>
 </footer>
 
