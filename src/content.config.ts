@@ -48,6 +48,9 @@ const blog = defineCollection({
   loader: glob({
     pattern: "{en,uk,es,de}/*.{md,mdx}",
     base: "./src/content/blog/generated",
+    // Without it the loader keys entries by the frontmatter `slug`, which every
+    // translation shares, so only one locale of a translated article survives.
+    generateId: ({ entry }) => entry.replace(/\.mdx?$/, ""),
   }),
   schema: blogPostSchema,
 });
