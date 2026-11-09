@@ -50,7 +50,7 @@ const buildPost = (overrides = {}) => ({
   ...overrides,
 });
 
-const buildExport = (postsOrOverrides = {}) => {
+const buildExport = (postsOrOverrides = {}, redirects = []) => {
   const posts = Array.isArray(postsOrOverrides)
     ? postsOrOverrides
     : [buildPost(postsOrOverrides)];
@@ -69,6 +69,7 @@ const buildExport = (postsOrOverrides = {}) => {
     },
     stats: { totalPosts: posts.length, includedPosts: posts.length },
     posts,
+    redirects,
   };
 };
 
@@ -349,6 +350,44 @@ describe("sync-blog-content", () => {
     assert.equal(result.code, 0, `stderr=${result.stderr}`);
     const serialized = await fs.readFile(path.join(managedRoot, "en", "video-summary.mdx"), "utf8");
     assert.doesNotMatch(serialized, /heroImage:/u);
+  });
+
+  it("writes the export's redirects into vercel.json and keeps the landing's own", async () => {
+    await fs.writeFile(
+      path.join(workspace, "vercel.json"),
+      JSON.stringify({ trailingSlash: true, redirects: [{ source: "/old-home/", destination: "/" }] }),
+    );
+    setResponse(
+      buildExport(
+        [buildPost({ draftId: DRAFT_ID_A, slug: "active-recall", locale: "en" })],
+        [
+          { fromLocale: "en", fromSlug: "merged-away", toLocale: "en", toSlug: "active-recall" },
+          { fromLocale: "es", fromSlug: "pruned", toLocale: "es", toSlug: null },
+        ],
+      ),
+    );
+    const result = await invoke();
+    assert.equal(result.code, 0, `stderr=${result.stderr}`);
+    const config = JSON.parse(await fs.readFile(path.join(workspace, "vercel.json"), "utf8"));
+    assert.equal(config.trailingSlash, true);
+    assert.deepEqual(config.redirects, [
+      { source: "/old-home/", destination: "/" },
+      { source: "/blog/merged-away/", destination: "/blog/active-recall/", permanent: true },
+      { source: "/es/blog/pruned/", destination: "/es/blog/", permanent: true },
+    ]);
+    await fs.rm(path.join(workspace, "vercel.json"));
+  });
+
+  it("refuses a redirect away from an article that is still exported", async () => {
+    setResponse(
+      buildExport(
+        [buildPost({ draftId: DRAFT_ID_A, slug: "active-recall", locale: "en" })],
+        [{ fromLocale: "en", fromSlug: "active-recall", toLocale: "en", toSlug: null }],
+      ),
+    );
+    const result = await invoke();
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /Redirect away from a live article/);
   });
 
   it("removes managed files that disappear from the export", async () => {

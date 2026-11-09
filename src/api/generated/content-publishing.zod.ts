@@ -299,6 +299,16 @@ export const rebuildControllerExportResponsePostsItemSourcesItemPublishedAtRegEx
 export const rebuildControllerExportResponsePostsItemItemCountMin = 0;
 export const rebuildControllerExportResponsePostsItemItemCountMax = 9007199254740991;
 
+export const rebuildControllerExportResponseRedirectsItemFromLocaleMin = 2;
+export const rebuildControllerExportResponseRedirectsItemFromLocaleMax = 8;
+
+export const rebuildControllerExportResponseRedirectsItemFromSlugMax = 255;
+
+export const rebuildControllerExportResponseRedirectsItemToLocaleMin = 2;
+export const rebuildControllerExportResponseRedirectsItemToLocaleMax = 8;
+
+export const rebuildControllerExportResponseRedirectsItemToSlugMaxOne = 255;
+
 
 
 export const rebuildControllerExportResponse = zod.strictObject({
@@ -567,7 +577,13 @@ export const rebuildControllerExportResponse = zod.strictObject({
   "pageType": zod.literal("template"),
   "itemCount": zod.number().min(rebuildControllerExportResponsePostsItemItemCountMin).max(rebuildControllerExportResponsePostsItemItemCountMax),
   "importUrl": zod.union([zod.url(),zod.null()])
-})]))
+})])),
+  "redirects": zod.array(zod.strictObject({
+  "fromLocale": zod.string().min(rebuildControllerExportResponseRedirectsItemFromLocaleMin).max(rebuildControllerExportResponseRedirectsItemFromLocaleMax),
+  "fromSlug": zod.string().min(1).max(rebuildControllerExportResponseRedirectsItemFromSlugMax),
+  "toLocale": zod.string().min(rebuildControllerExportResponseRedirectsItemToLocaleMin).max(rebuildControllerExportResponseRedirectsItemToLocaleMax),
+  "toSlug": zod.union([zod.string().min(1).max(rebuildControllerExportResponseRedirectsItemToSlugMaxOne),zod.null()])
+}))
 })
 
 

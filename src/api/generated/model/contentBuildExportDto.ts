@@ -9,6 +9,7 @@ import type { ContentBuildExportDtoRebuild } from './contentBuildExportDtoRebuil
 import type { ContentBuildExportDtoApplication } from './contentBuildExportDtoApplication';
 import type { ContentBuildExportDtoStats } from './contentBuildExportDtoStats';
 import type { ContentBuildExportDtoPostsItem } from './contentBuildExportDtoPostsItem';
+import type { ContentBuildExportDtoRedirectsItem } from './contentBuildExportDtoRedirectsItem';
 
 export interface ContentBuildExportDto {
   schemaVersion: 1;
@@ -16,4 +17,5 @@ export interface ContentBuildExportDto {
   application: ContentBuildExportDtoApplication;
   stats: ContentBuildExportDtoStats;
   posts: ContentBuildExportDtoPostsItem[];
+  redirects: ContentBuildExportDtoRedirectsItem[];
 }

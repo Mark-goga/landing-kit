@@ -16,6 +16,7 @@ import type { ContentBuildExportDto } from "../api/generated/model";
 import { rebuildControllerExportResponse } from "../api/generated/content-publishing.zod";
 import { createContentPublishingRequestInit } from "../api/content-publishing-fetch";
 import { isBlogHeroImage, relatedPostSchema } from "../content/blog-presentation";
+import { writeBlogRedirects } from "./blog-routes";
 
 type BuildPost = ContentBuildExportDto["posts"][number];
 
@@ -279,6 +280,15 @@ const main = async (): Promise<void> => {
     if (routeSet.has(route)) throw new Error(`Duplicate route in export: ${route}`);
     routeSet.add(route);
   }
+  for (const redirect of exportData.redirects) {
+    const slugs = [redirect.fromSlug, redirect.toSlug].filter((slug) => slug !== null);
+    if (slugs.some((slug) => !SLUG_RE.test(slug))) {
+      throw new Error(`Invalid redirect slug: ${JSON.stringify(redirect)}`);
+    }
+    if (routeSet.has(`${redirect.fromLocale}/${redirect.fromSlug}`)) {
+      throw new Error(`Redirect away from a live article: ${redirect.fromLocale}/${redirect.fromSlug}`);
+    }
+  }
 
   const tmpRoot = `${managedRoot}.tmp-${process.pid}-${Date.now()}`;
   await fs.mkdir(tmpRoot, { recursive: true });
@@ -346,6 +356,8 @@ const main = async (): Promise<void> => {
     await fs.mkdir(path.dirname(managedRoot), { recursive: true });
     await fs.rename(tmpRoot, managedRoot);
   }
+
+  await writeBlogRedirects(process.cwd(), exportData.redirects);
 
   // The `/complete` callback only needs the draftIds the backend expects to
   // publish (i.e. this rebuild's approved set). Reporting previously-published

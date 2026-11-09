@@ -77,6 +77,7 @@ const buildExport = (indices) => {
     application: { id: APPLICATION_ID, name: "Fluxo", domain: "fluxo.today", defaultLocale: "en" },
     stats: { totalPosts: posts.length, includedPosts: posts.length },
     posts,
+    redirects: [],
   };
 };
 
