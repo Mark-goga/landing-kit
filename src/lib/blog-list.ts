@@ -1,10 +1,7 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 import type { LocaleKey } from "../config/site";
-import { HUMAN_BLOG_SLUGS } from "@site/config/generated-blog-collision";
 
-// Unified card model consumed by the blog index UI. Both generated posts
-// (auto-published) and static posts (hand-written) collapse into this shape
-// so the index component does not need to know their provenance.
+// Card model consumed by the blog index UI.
 export type BlogCard = {
   slug: string;
   href: string;
@@ -13,11 +10,10 @@ export type BlogCard = {
   description: string;
   category: string;
   publishedAt: string; // ISO date used for sorting fallback
-  freshnessAt?: string; // ISO date = modifiedAt (or updatedAt for generated) — used as primary sort key
+  freshnessAt?: string; // ISO date = modifiedAt, else createdAt — used as primary sort key
   publishedDisplay: string;
   readTime?: string;
   heroImage?: string;
-  source: "generated" | "static";
   featured: boolean;
 };
 
@@ -88,21 +84,11 @@ const generatedRoutePath = (locale: LocaleKey, slug: string) =>
   locale === "en" ? `/blog/${slug}/` : `/${locale}/blog/${slug}/`;
 
 export async function getBlogCards(locale: LocaleKey): Promise<BlogCard[]> {
-  const [generated, statics] = await Promise.all([
-    getCollection("blog"),
-    getCollection("blogStatic"),
-  ]);
+  const generated = await getCollection("blog");
 
-  const cards: BlogCard[] = [];
-
-  for (const entry of generated as CollectionEntry<"blog">[]) {
-    const data = entry.data;
-    if (data.locale !== locale) continue;
-    // English routing rule from kit/pages/blog/[slug].astro: collisions with
-    // handwritten slugs are skipped, so index parity requires the same filter.
-    if (locale === "en" && HUMAN_BLOG_SLUGS.includes(data.slug)) continue;
-
-    cards.push({
+  const cards: BlogCard[] = (generated as CollectionEntry<"blog">[])
+    .filter((entry) => entry.data.locale === locale)
+    .map(({ data }) => ({
       slug: data.slug,
       href: generatedRoutePath(locale, data.slug),
       locale: data.locale as LocaleKey,
@@ -117,32 +103,8 @@ export async function getBlogCards(locale: LocaleKey): Promise<BlogCard[]> {
       publishedDisplay: formatDate(data.createdAt, locale),
       readTime: estimateReadTime(locale),
       heroImage: data.heroImage,
-      source: "generated",
       featured: Boolean(data.featured),
-    });
-  }
-
-  for (const entry of statics as CollectionEntry<"blogStatic">[]) {
-    const data = entry.data;
-    if (data.locale !== locale) continue;
-    cards.push({
-      slug: data.slug,
-      href: data.routePath,
-      locale: data.locale as LocaleKey,
-      title: data.title,
-      description: data.metaDescription,
-      category: data.category,
-      publishedAt: `${data.publishedAt}T00:00:00Z`,
-      freshnessAt: data.modifiedAt
-        ? `${data.modifiedAt}T00:00:00Z`
-        : `${data.publishedAt}T00:00:00Z`,
-      publishedDisplay: formatDate(`${data.publishedAt}T00:00:00Z`, locale),
-      readTime: data.readTime,
-      heroImage: `/${data.heroAsset.replace(/^\/+/, "")}`,
-      source: "static",
-      featured: Boolean(data.featured),
-    });
-  }
+    }));
 
   // Ordering: featured first, then freshness (freshnessAt desc), then title asc.
   // freshnessAt matches sitemap `<lastmod>` semantic — modifiedAt when present,

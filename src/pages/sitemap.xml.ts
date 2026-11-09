@@ -1,6 +1,5 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 import { absoluteUrl, siteConfig, supportedLocales, xDefaultPath, type LocaleKey } from "../config/site";
-import { HUMAN_BLOG_SLUGS } from "@site/config/generated-blog-collision";
 import { SUPPORT_PATH } from "../lib/support";
 
 const localePath = (l: LocaleKey, slug: string): string =>
@@ -93,14 +92,6 @@ const normalizeDateInput = (raw: string): { display: string; key: string } => {
 };
 
 export async function GET() {
-  const staticEntries = await getCollection("blogStatic");
-  const staticBySlug = new Map<string, CollectionEntry<"blogStatic">[]>();
-  for (const entry of staticEntries) {
-    const list = staticBySlug.get(entry.data.slug) ?? [];
-    list.push(entry);
-    staticBySlug.set(entry.data.slug, list);
-  }
-
   // Track per-locale freshest post so blog index page can carry a real lastmod.
   const localeFreshest = new Map<LocaleKey, string>();
   const bumpLocaleFreshness = (locale: LocaleKey, key: string) => {
@@ -108,53 +99,9 @@ export async function GET() {
     if (!current || current < key) localeFreshest.set(locale, key);
   };
 
-  const staticFreshness = (entry: CollectionEntry<"blogStatic">): { display: string | null; key: string } => {
-    const rawModified = entry.data.modifiedAt;
-    if (rawModified) return { display: normalizeDateInput(rawModified).display, key: normalizeDateInput(rawModified).key };
-    // No modifiedAt → no <lastmod> emitted, but still contribute publishedAt to sort key.
-    return { display: null, key: `${entry.data.publishedAt}T00:00:00Z` };
-  };
-
   const blogEntries: BlogUrlEntry[] = [];
 
-  for (const [slug, entries] of staticBySlug.entries()) {
-    const byLocale = new Map<LocaleKey, CollectionEntry<"blogStatic">>();
-    for (const e of entries) byLocale.set(e.data.locale as LocaleKey, e);
-    const enEntry = byLocale.get("en");
-    const xDefaultHref = enEntry
-      ? absoluteUrl(enEntry.data.routePath)
-      : absoluteUrl(localePath("en", slug));
-
-    for (const locale of supportedLocales) {
-      const entry = byLocale.get(locale.key) ?? enEntry;
-      if (!entry) continue;
-      const loc = absoluteUrl(entry.data.routePath);
-      const { display: lastmodDisplay, key } = staticFreshness(entry);
-      bumpLocaleFreshness(locale.key, key);
-      const heroPath = `/${entry.data.heroAsset.replace(/^\/+/, "")}`;
-      const image = imageBlock(
-        absoluteUrl(heroPath),
-        entry.data.title,
-        entry.data.heroAlt,
-      );
-      const altBlock = alternateLinks((alternate) => {
-        const alt = byLocale.get(alternate.key) ?? enEntry;
-        return alt ? absoluteUrl(alt.data.routePath) : xDefaultHref;
-      }, xDefaultHref);
-      blogEntries.push({
-        loc,
-        lastmod: lastmodDisplay ?? "",
-        freshnessKey: key,
-        altBlock,
-        image,
-      });
-    }
-  }
-
   const generatedEntries = await getCollection("blog");
-  const generatedFiltered = generatedEntries.filter(
-    (entry) => !HUMAN_BLOG_SLUGS.includes(entry.data.slug),
-  );
 
   const generatedFreshness = (data: CollectionEntry<"blog">["data"]): { display: string; key: string } => {
     const raw = data.modifiedAt ?? data.createdAt;
@@ -170,7 +117,7 @@ export async function GET() {
     title: string;
   };
   const groupToEntries = new Map<string, GeneratedEntry[]>();
-  for (const entry of generatedFiltered) {
+  for (const entry of generatedEntries) {
     const list = groupToEntries.get(entry.data.translationGroupId) ?? [];
     const { display, key } = generatedFreshness(entry.data);
     list.push({
@@ -187,9 +134,6 @@ export async function GET() {
   const existingRouteSet = new Set<string>();
   for (const locale of supportedLocales) {
     existingRouteSet.add(absoluteUrl(locale.path));
-  }
-  for (const entry of staticEntries) {
-    existingRouteSet.add(absoluteUrl(entry.data.routePath));
   }
 
   for (const groupEntries of groupToEntries.values()) {

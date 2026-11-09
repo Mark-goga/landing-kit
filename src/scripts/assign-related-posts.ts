@@ -27,31 +27,11 @@ import {
   type RelatedPost,
 } from "../content/blog-presentation";
 
-type StaticBlogFrontmatter = {
-  slug: string;
-  locale: string;
-  routePath: string;
-  category: string;
-  title: string;
-  subtitle: string;
-  metaTitle: string;
-  metaDescription: string;
-  author: string;
-  readTime: string;
-  heroAsset: string;
-  heroAlt: string;
-  publishedAt: string;
-  modifiedAt?: string;
-};
-
-const STATIC_BLOG_ROOT = path.resolve(process.cwd(), "src/content/blog-static");
-
 const MAX_RELATED_POSTS = 3;
 // Every article must be reachable from at least this many other articles.
 // Outbound links are sticky, inbound ones cannot be — see the rebalance pass.
 const MIN_INBOUND_LINKS = 2;
-// `sync-blog-content` writes `.mdx`; hand-authored static posts are `.md`.
-// Both collections take part in the internal-link graph.
+// `sync-blog-content` writes `.mdx`; `.md` is accepted for hand-placed files.
 const ARTICLE_FILE_RE = /\.mdx?$/u;
 const SUPPORTED_LOCALES = new Set(["en", "uk", "es", "de"]);
 const STOP_WORDS = new Set([
@@ -171,59 +151,6 @@ const toArticle = async (file: string, root: string): Promise<Article> => {
     descriptionTerms: tokenize(metaDescription),
     bodyTerms: tokenize(body),
   };
-};
-
-const toManualArticle = (file: string, fm: StaticBlogFrontmatter, bodyHtml: string, data: Frontmatter): Article => {
-  const heroCandidate = `/${fm.heroAsset.replace(/^\/+/, "")}`;
-  const heroImage = isBlogHeroImage(heroCandidate) ? heroCandidate : undefined;
-  const body = bodyHtml.replace(/<[^>]*>/gu, " ");
-  return {
-    file,
-    writable: true,
-    key: `${fm.locale}/${fm.slug}`,
-    locale: fm.locale,
-    slug: fm.slug,
-    title: fm.title,
-    metaDescription: fm.metaDescription,
-    pageType: "manual",
-    translationGroupId: `manual:${fm.locale}:${fm.slug}`,
-    heroImage,
-    data,
-    body: bodyHtml,
-    existingRelated: readExistingRelated(data),
-    titleTerms: tokenize(`${fm.slug.replaceAll("-", " ")} ${fm.title}`),
-    descriptionTerms: tokenize(fm.metaDescription),
-    bodyTerms: tokenize(body),
-  };
-};
-
-const manualArticles = async (): Promise<Article[]> => {
-  const out: Article[] = [];
-  let dirs: string[];
-  try {
-    dirs = await fs.readdir(STATIC_BLOG_ROOT);
-  } catch {
-    return out;
-  }
-  for (const locale of dirs) {
-    const dir = path.join(STATIC_BLOG_ROOT, locale);
-    let stat;
-    try { stat = await fs.stat(dir); } catch { continue; }
-    if (!stat.isDirectory()) continue;
-    for (const name of await fs.readdir(dir)) {
-      if (!ARTICLE_FILE_RE.test(name)) continue;
-      const file = path.join(dir, name);
-      const source = await fs.readFile(file, "utf8");
-      if (!source.startsWith("---\n")) continue;
-      const end = source.indexOf("\n---\n", 4);
-      if (end === -1) continue;
-      const data = YAML.parse(source.slice(4, end)) as Frontmatter;
-      const fm = data as unknown as StaticBlogFrontmatter;
-      const body = source.slice(end + 5);
-      out.push(toManualArticle(file, fm, body, data));
-    }
-  }
-  return out;
 };
 
 const listMarkdownFiles = async (root: string): Promise<string[]> => {
@@ -434,8 +361,7 @@ const main = async (): Promise<void> => {
   const generatedArticles = await Promise.all(
     (await listMarkdownFiles(root)).map((file) => toArticle(file, root)),
   );
-  const staticArticles = await manualArticles();
-  const articles = [...generatedArticles, ...staticArticles];
+  const articles = generatedArticles;
   const sorted = [...articles].sort((a, b) => a.key.localeCompare(b.key));
   const related = assignRelatedPosts(articles);
 
@@ -465,7 +391,6 @@ const main = async (): Promise<void> => {
   process.stdout.write(
     `${JSON.stringify({
       generated: generatedArticles.length,
-      static: staticArticles.length,
       candidates: articles.length,
       updated: pending.length,
       preserved: articles.length - pending.length,

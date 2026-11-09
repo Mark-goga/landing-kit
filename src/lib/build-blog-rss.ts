@@ -7,8 +7,7 @@ interface BuildBlogRssArgs {
   feedUrl: string;
   siteUrl: string;
   blogIndexUrl: string;
-  staticEntries: CollectionEntry<"blogStatic">[];
-  generatedEntries: CollectionEntry<"blog">[];
+  entries: CollectionEntry<"blog">[];
 }
 
 type FeedItem = {
@@ -58,23 +57,12 @@ export function buildBlogRss(args: BuildBlogRssArgs): Response {
     feedUrl,
     siteUrl,
     blogIndexUrl,
-    staticEntries,
-    generatedEntries,
+    entries,
   } = args;
 
   const items: FeedItem[] = [];
 
-  for (const entry of staticEntries) {
-    items.push({
-      title: entry.data.title,
-      description: entry.data.metaDescription,
-      url: absoluteUrl(entry.data.routePath),
-      pubDate: parseDate(entry.data.modifiedAt ?? entry.data.publishedAt),
-      author: entry.data.author?.name ?? null,
-    });
-  }
-
-  for (const entry of generatedEntries) {
+  for (const entry of entries) {
     const routePath = locale === "en" ? `/blog/${entry.data.slug}/` : `/${locale}/blog/${entry.data.slug}/`;
     items.push({
       title: entry.data.title,

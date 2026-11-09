@@ -13,8 +13,8 @@ landing-kit/
 │   │                   Pricing, Faq, Cta, Modal, PolicyDocument, Breadcrumb,
 │   │                   BlogIndex, KeepReading, TableOfContents,
 │   │                   TurnstileScript, TrackingScripts, LandingPage)
-│   ├── layouts/        LandingLayout, PageLayout, BlogArticleLayout,
-│   │                   BlogIndexLayout, GeneratedBlogArticleLayout
+│   ├── layouts/        LandingLayout, PageLayout, BlogIndexLayout,
+│   │                   GeneratedBlogArticleLayout
 │   ├── pages/          Shared routes: 404, robots.txt, sitemap.xml,
 │   │                   blog/[slug], [locale]/blog/[slug], blog/index,
 │   │                   [locale]/blog/index

@@ -15,7 +15,7 @@ git submodule. Ships:
 
 - `src/components` — Header, Footer, Hero, Why, Features, Pricing, Faq, Cta,
   Modal, PolicyDocument, Turnstile + Tracking wrappers.
-- `src/layouts` — LandingLayout, PageLayout, BlogArticleLayout, GeneratedBlogArticleLayout.
+- `src/layouts` — LandingLayout, PageLayout, BlogIndexLayout, GeneratedBlogArticleLayout.
 - `src/pages` — cookies, privacy, unsubscribe, 404, robots.txt, sitemap.xml,
   and the dynamic auto-generated blog routes (`blog/[slug]`, `[locale]/blog/[slug]`).
 - `src/api` — orval-generated MindAI backend client (`content-publishing.ts`
@@ -56,8 +56,6 @@ Each landing:
 4. Implements the landing-specific modules the kit expects at `@site/…`:
    - `src/data/locales.ts` — copy (English + optional locales), FAQ, pricing,
      etc. Must match the `LandingContent` shape.
-   - `src/config/generated-blog-collision.ts` — human-authored slug list to
-     guard against auto-generated collisions.
    - `src/config/site.ts` — thin re-export of `@kit/config/site` so `.env`
      values feed both kit and landing.
 5. Provides `.env` values documented in `src/config/site.ts` (SITE_NAME,
