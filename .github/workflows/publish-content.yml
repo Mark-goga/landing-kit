@@ -144,13 +144,14 @@ jobs:
           # images downloaded from the backend's R2 pool are the only bot-owned
           # paths. Everything else (dynamic routes, brand copy, kit) is
           # human-authored and must ship via a normal PR.
-          # blog-static is human-authored prose, but its `relatedPosts` block is
-          # rewritten by assign-related-posts against the new corpus; leaving it
-          # behind would let those articles keep links to removed posts.
+          # Every article now lives in the backend; a landing still pinned to a
+          # kit with the static collection gets its blog-static relatedPosts
+          # rewrites committed until it moves to the new kit.
           mkdir -p public/assets/blog
           # vercel.json carries the 301s of retired articles (blog paths only;
           # sync keeps every other redirect untouched).
-          git add "$MANAGED_ROOT" public/assets/covers public/assets/blog src/content/blog-static vercel.json
+          git add "$MANAGED_ROOT" public/assets/covers public/assets/blog vercel.json
+          if [ -d src/content/blog-static ]; then git add src/content/blog-static; fi
           if git diff --cached --quiet; then
             echo "No content changes to commit."
             echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"

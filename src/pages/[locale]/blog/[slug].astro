@@ -1,76 +1,26 @@
 ---
 import { getCollection, type CollectionEntry } from "astro:content";
 import GeneratedBlogArticleLayout from "../../../layouts/GeneratedBlogArticleLayout.astro";
-import BlogArticleLayout from "../../../layouts/BlogArticleLayout.astro";
-import { assertNoRouteCollision } from "../../../lib/blog-collision";
-import { HUMAN_BLOG_SLUGS } from "@site/config/generated-blog-collision";
-import type { LocaleKey } from "../../../config/site";
+import { translationsByGroup } from "../../../lib/blog-translations";
 
-type GeneratedProps = {
-  kind: "generated";
+type Props = {
   entry: CollectionEntry<"blog">;
   translations: CollectionEntry<"blog">[];
 };
-type StaticProps = { kind: "static"; slug: string; locale: LocaleKey };
-type Props = GeneratedProps | StaticProps;
 
 export async function getStaticPaths() {
-  const nonEnglishLocales: LocaleKey[] = ["uk", "es", "de"];
   const all = await getCollection("blog");
-  const localized = all.filter((entry: CollectionEntry<"blog">) =>
-    nonEnglishLocales.includes(entry.data.locale as LocaleKey),
-  );
+  const translationsOf = translationsByGroup(all);
 
-  const nonColliding = localized.filter(
-    (entry: CollectionEntry<"blog">) => !HUMAN_BLOG_SLUGS.includes(entry.data.slug),
-  );
-
-  const generatedCollisions = localized.filter((entry: CollectionEntry<"blog">) =>
-    HUMAN_BLOG_SLUGS.includes(entry.data.slug),
-  );
-  assertNoRouteCollision(
-    generatedCollisions.map((e) => ({ locale: e.data.locale, slug: e.data.slug })),
-    HUMAN_BLOG_SLUGS,
-  );
-
-  const byGroup = new Map<string, CollectionEntry<"blog">[]>();
-  for (const e of all) {
-    const list = byGroup.get(e.data.translationGroupId) ?? [];
-    list.push(e);
-    byGroup.set(e.data.translationGroupId, list);
-  }
-
-  const generatedPaths = nonColliding.map((entry: CollectionEntry<"blog">) => ({
-    params: { locale: entry.data.locale, slug: entry.data.slug },
-    props: {
-      kind: "generated" as const,
-      entry,
-      translations: (byGroup.get(entry.data.translationGroupId) ?? []).filter(
-        (t: CollectionEntry<"blog">) => t.id !== entry.id,
-      ),
-    } satisfies GeneratedProps,
-  }));
-
-  const staticEntries = await getCollection("blogStatic");
-  const staticPaths = staticEntries
-    .filter((e: CollectionEntry<"blogStatic">) =>
-      nonEnglishLocales.includes(e.data.locale as LocaleKey),
-    )
-    .map((e: CollectionEntry<"blogStatic">) => ({
-      params: { locale: e.data.locale, slug: e.data.slug },
-      props: {
-        kind: "static" as const,
-        slug: e.data.slug,
-        locale: e.data.locale as LocaleKey,
-      } satisfies StaticProps,
+  return all
+    .filter((entry: CollectionEntry<"blog">) => entry.data.locale !== "en")
+    .map((entry: CollectionEntry<"blog">) => ({
+      params: { locale: entry.data.locale, slug: entry.data.slug },
+      props: { entry, translations: translationsOf(entry) } satisfies Props,
     }));
-
-  return [...generatedPaths, ...staticPaths];
 }
 
-const props = Astro.props as Props;
+const { entry, translations } = Astro.props as Props;
 ---
 
-{props.kind === "generated"
-  ? <GeneratedBlogArticleLayout entry={props.entry} translations={props.translations} />
-  : <BlogArticleLayout slug={props.slug} locale={props.locale} />}
+<GeneratedBlogArticleLayout entry={entry} translations={translations} />

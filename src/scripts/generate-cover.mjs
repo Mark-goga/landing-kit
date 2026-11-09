@@ -79,7 +79,6 @@ const DEFAULT_PAGE_TYPE_TO_CATEGORY = {
 
 const THEMES = { ...DEFAULT_THEMES, ...(siteCoverConfig.themes || {}) };
 const PAGE_TYPE_TO_CATEGORY = { ...DEFAULT_PAGE_TYPE_TO_CATEGORY, ...(siteCoverConfig.pageTypeToCategory || {}) };
-const STATIC_CATEGORY_TO_THEME = siteCoverConfig.staticCategoryToTheme || {};
 const DEFAULT_THEME_KEY = siteCoverConfig.defaultTheme || "workflows";
 const BRAND_NAME = siteCoverConfig.brand || "Fluxo";
 
@@ -204,12 +203,7 @@ function articleFromFile(filePath) {
   const raw = readFileSync(filePath, "utf8");
   const { yaml, body } = splitFrontmatter(raw);
   const fm = YAML.parse(yaml);
-  // Static-blog frontmatter has no pageType — map its plain `category` string
-  // via the site's staticCategoryToTheme config. Generated posts stick with
-  // pageType → theme so behaviour for existing Fluxo generated posts is unchanged.
-  const category = fm.pageType
-    ? (PAGE_TYPE_TO_CATEGORY[fm.pageType] || DEFAULT_THEME_KEY)
-    : (STATIC_CATEGORY_TO_THEME[fm.category] || DEFAULT_THEME_KEY);
+  const category = PAGE_TYPE_TO_CATEGORY[fm.pageType] || DEFAULT_THEME_KEY;
   return {
     filePath, fm, body,
     slug: fm.slug,
@@ -267,10 +261,7 @@ function main() {
 
   if (flags.all || flags.slug) {
     const managedRoot = resolve(REPO_ROOT, flags["managed-root"] || "src/content/blog/generated");
-    const staticRoot = resolve(REPO_ROOT, flags["static-root"] || "src/content/blog-static");
-    const roots = [managedRoot];
-    try { if (statSync(staticRoot).isDirectory()) roots.push(staticRoot); } catch {}
-    const files = roots.flatMap(findManagedFiles).filter((f) => {
+    const files = findManagedFiles(managedRoot).filter((f) => {
       if (!flags.slug) return true;
       const article = articleFromFile(f);
       const localeOk = !flags.locale || article.locale === flags.locale;
