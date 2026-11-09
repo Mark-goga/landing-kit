@@ -102,8 +102,34 @@ jobs:
           node landing-kit/src/scripts/generate-cover.mjs --all \
             --managed-root="${{ inputs.managedContentRoot }}"
 
+      - name: Check that no live blog URL disappears
+        run: npx tsx landing-kit/src/scripts/check-url-retention.ts --ref HEAD
+
       - name: Astro check
         run: npx astro check
+
+      # astro check does not render pages. A full build does, and Astro only
+      # warns when two content files share an id (one silently replaces the
+      # other, which turned translated articles into 404s in November 2026).
+      - name: Build the site
+        # Vercel deploys with the real values; this build only proves every page
+        # renders, so placeholders satisfy the config's required variables.
+        env:
+          SITE_URL: https://build-check.invalid
+          ASTRO_BASE_PATH: /
+          SITE_NAME: Build check
+          APPLICATION_ID: ${{ inputs.applicationId }}
+          LEADS_API_URL: https://build-check.invalid/api
+          CLARITY_PROJECT_ID: build-check
+          HERO_IMAGE_PATH: assets/hero.webp
+          SITE_SCRIPT_PATH: assets/site.js
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build.log
+          if grep -q "Duplicate id" build.log; then
+            echo "Content collection has duplicate ids: some articles would not be built" >&2
+            exit 1
+          fi
 
       - name: Commit generated content
         id: commit
@@ -122,7 +148,9 @@ jobs:
           # rewritten by assign-related-posts against the new corpus; leaving it
           # behind would let those articles keep links to removed posts.
           mkdir -p public/assets/blog
-          git add "$MANAGED_ROOT" public/assets/covers public/assets/blog src/content/blog-static
+          # vercel.json carries the 301s of retired articles (blog paths only;
+          # sync keeps every other redirect untouched).
+          git add "$MANAGED_ROOT" public/assets/covers public/assets/blog src/content/blog-static vercel.json
           if git diff --cached --quiet; then
             echo "No content changes to commit."
             echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"

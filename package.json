@@ -9,7 +9,7 @@
     "contracts:generate": "orval --config orval.config.ts",
     "contracts:check": "npm run contracts:generate && git diff --exit-code -- src/api/generated",
     "contracts:sync": "node src/scripts/pull-mindai-spec.mjs",
-    "test": "node --test src/scripts/*.test.mjs"
+    "test": "node --test src/scripts/*.test.mjs src/lib/*.test.mjs"
   },
   "peerDependencies": {
     "astro": "^6.4.2"
