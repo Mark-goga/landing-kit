@@ -6,6 +6,7 @@ import { translationsByGroup } from "../../../lib/blog-translations";
 type Props = {
   entry: CollectionEntry<"blog">;
   translations: CollectionEntry<"blog">[];
+  storeLinks?: { appStore: string; googlePlay: string };
 };
 
 export async function getStaticPaths() {
@@ -20,7 +21,7 @@ export async function getStaticPaths() {
     }));
 }
 
-const { entry, translations } = Astro.props as Props;
+const { entry, translations, storeLinks } = Astro.props as Props;
 ---
 
-<GeneratedBlogArticleLayout entry={entry} translations={translations} />
+<GeneratedBlogArticleLayout entry={entry} translations={translations} storeLinks={storeLinks} />
