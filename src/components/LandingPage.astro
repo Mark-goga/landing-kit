@@ -33,7 +33,7 @@ const pageRoutePath = routePath ?? content.path;
     <Features content={content} routePath={pageRoutePath} />
     <Pricing content={content} routePath={pageRoutePath} />
     <Faq content={content} />
-    <Cta content={content} />
+    <Cta content={content} routePath={pageRoutePath} storeLinks={storeLinks} />
   </main>
   <Footer content={content} routePath={pageRoutePath} />
   <LeadModal content={content} routePath={pageRoutePath} storeLinks={storeLinks} />

@@ -1,54 +1,101 @@
 ---
+// Closing call-to-action of the landing page.
+//
+// Mode is decided by `storeLinks` (see Modal.astro): when both store URLs are set, this
+// renders direct App Store / Google Play buttons. When storeLinks is absent/empty (app not
+// launched yet), it falls back to the email lead-capture form handled by LeadModal.astro.
 import type { LandingContent } from "@site/data/locales";
-import { siteConfig } from "../config/site";
+import { siteConfig, pageAssetUrl } from "../config/site";
 
 interface Props {
   content: LandingContent;
+  routePath: string;
+  storeLinks?: { appStore: string; googlePlay: string };
 }
 
-const { content } = Astro.props;
+const { content, routePath, storeLinks } = Astro.props;
+const links = storeLinks ?? { appStore: "", googlePlay: "" };
+const hasStores = Boolean(links.appStore && links.googlePlay);
+const stores = [
+  {
+    key: "app-store",
+    name: "App Store",
+    href: links.appStore,
+    icon: pageAssetUrl(routePath, "assets/ic_baseline-apple.svg"),
+    clarityEvent: "cta_app_store_click",
+  },
+  {
+    key: "google-play",
+    name: "Google Play",
+    href: links.googlePlay,
+    icon: pageAssetUrl(routePath, "assets/material-icon-theme_google.svg"),
+    clarityEvent: "cta_google_play_click",
+  },
+];
 ---
 
 <section class="cta" id="cta">
   <h2 class="cta-title" set:html={content.cta.titleHtml} />
-  <form class="cta-form" data-lead-form data-from="input-email" novalidate>
-    <div class="cta-input-shell">
-      <div class="cta-input-row">
-        <svg class="cta-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g clip-path="url(#clip0)">
-            <path
-              d="M10 13.125C11.7259 13.125 13.125 11.7259 13.125 10C13.125 8.27411 11.7259 6.875 10 6.875C8.27411 6.875 6.875 8.27411 6.875 10C6.875 11.7259 8.27411 13.125 10 13.125Z"
-              stroke="white"
-              stroke-width="1.6"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            ></path>
-            <path
-              d="M14.375 16.25C13.1867 17.0398 11.5336 17.5 10 17.5C8.51664 17.5 7.0666 17.0601 5.83323 16.236C4.59986 15.4119 3.63856 14.2406 3.07091 12.8701C2.50325 11.4997 2.35472 9.99168 2.64411 8.53683C2.9335 7.08197 3.64781 5.7456 4.6967 4.6967C5.7456 3.64781 7.08197 2.9335 8.53683 2.64411C9.99168 2.35472 11.4997 2.50325 12.8701 3.07091C14.2406 3.63856 15.4119 4.59986 16.236 5.83323C17.0601 7.0666 17.5 8.51664 17.5 10C17.5 11.7258 16.875 13.125 15.3125 13.125C13.75 13.125 13.125 11.7258 13.125 10V6.875"
-              stroke="white"
-              stroke-width="1.6"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            ></path>
-          </g>
-          <defs>
-            <clipPath id="clip0"><rect width="20" height="20" fill="white"></rect></clipPath>
-          </defs>
-        </svg>
-        <input type="email" name="email" placeholder={content.cta.placeholder} required autocomplete="email" />
+  {
+    hasStores ? (
+      <div class="cta-stores">
+        {stores.map((store) => (
+          <a
+            href={store.href}
+            class={`cta-store-btn cta-store-btn--${store.key}`}
+            target="_blank"
+            rel="noopener"
+            data-clarity-event={store.clarityEvent}
+          >
+            <img class="cta-store-icon" src={store.icon} alt="" width="24" height="24" aria-hidden="true" />
+            <span class="cta-store-text">
+              <span class="cta-store-small">{content.modal.downloadOn}</span>
+              <span class="cta-store-name">{store.name}</span>
+            </span>
+          </a>
+        ))}
       </div>
-    </div>
-    {
-      siteConfig.turnstileSiteKey && (
-        <div
-          class="cf-turnstile"
-          data-sitekey={siteConfig.turnstileSiteKey}
-          data-appearance="interaction-only"
-          data-size="flexible"
-        />
-      )
-    }
-    <button type="submit">{content.cta.submit.label}</button>
-  </form>
-  <p class="cta-note" set:html={content.cta.noteHtml} />
+    ) : (
+      <form class="cta-form" data-lead-form data-from="input-email" novalidate>
+        <div class="cta-input-shell">
+          <div class="cta-input-row">
+            <svg class="cta-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g clip-path="url(#clip0)">
+                <path
+                  d="M10 13.125C11.7259 13.125 13.125 11.7259 13.125 10C13.125 8.27411 11.7259 6.875 10 6.875C8.27411 6.875 6.875 8.27411 6.875 10C6.875 11.7259 8.27411 13.125 10 13.125Z"
+                  stroke="white"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+                <path
+                  d="M14.375 16.25C13.1867 17.0398 11.5336 17.5 10 17.5C8.51664 17.5 7.0666 17.0601 5.83323 16.236C4.59986 15.4119 3.63856 14.2406 3.07091 12.8701C2.50325 11.4997 2.35472 9.99168 2.64411 8.53683C2.9335 7.08197 3.64781 5.7456 4.6967 4.6967C5.7456 3.64781 7.08197 2.9335 8.53683 2.64411C9.99168 2.35472 11.4997 2.50325 12.8701 3.07091C14.2406 3.63856 15.4119 4.59986 16.236 5.83323C17.0601 7.0666 17.5 8.51664 17.5 10C17.5 11.7258 16.875 13.125 15.3125 13.125C13.75 13.125 13.125 11.7258 13.125 10V6.875"
+                  stroke="white"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+              </g>
+              <defs>
+                <clipPath id="clip0"><rect width="20" height="20" fill="white"></rect></clipPath>
+              </defs>
+            </svg>
+            <input type="email" name="email" placeholder={content.cta.placeholder} required autocomplete="email" />
+          </div>
+        </div>
+        {
+          siteConfig.turnstileSiteKey && (
+            <div
+              class="cf-turnstile"
+              data-sitekey={siteConfig.turnstileSiteKey}
+              data-appearance="interaction-only"
+              data-size="flexible"
+            />
+          )
+        }
+        <button type="submit">{content.cta.submit.label}</button>
+      </form>
+    )
+  }
+  {content.cta.noteHtml && <p class="cta-note" set:html={content.cta.noteHtml} />}
 </section>
