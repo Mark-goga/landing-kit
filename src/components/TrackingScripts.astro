@@ -45,3 +45,10 @@ gtag('config', '${siteConfig.gaMeasurementId}');`;
     </>
   )
 }
+<script>
+  // Store buttons carry the campaign of the /go link the visitor came from
+  // (App Store `ct`, Google Play `referrer`); see lib/store-attribution.ts.
+  import { applyStoreAttribution } from "../lib/store-attribution";
+
+  applyStoreAttribution(window, document);
+</script>
